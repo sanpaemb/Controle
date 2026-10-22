@@ -1,59 +1,77 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SANPA • Captura de produção</title><script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script><style>
 *{box-sizing:border-box}body{margin:0;background:#f1f4f8;color:#203149;font:14px system-ui}header{background:#17365d;color:white;padding:23px 5%}header h1{margin:0;font-size:25px}main{max-width:1350px;margin:22px auto;padding:0 18px}.panel{background:white;border:1px solid #dce5ef;border-radius:12px;padding:20px;margin:15px 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.fields{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}label{display:block;font-size:12px;font-weight:700;color:#687a8d;margin:7px 0}input,select,textarea{padding:10px;width:100%;border:1px solid #d4dfe9;border-radius:7px;font:inherit}button,.button{background:#136c81;color:white;border:0;padding:11px 15px;border-radius:8px;cursor:pointer;text-decoration:none;font-weight:700;display:inline-block}button.secondary,.button.secondary{background:#e8edf5;color:#273a54}.controls{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px}.note{background:#fff4dd;border-radius:8px;padding:11px;margin:12px 0;color:#795b22}.green{background:#e2f5ed;color:#206a50;padding:11px;border-radius:8px}.scroll{overflow:auto}table{border-collapse:collapse;width:100%}th,td{border-bottom:1px solid #edf0f4;padding:9px;white-space:nowrap;text-align:left}td input{min-width:95px}th{color:#66798c;font-size:12px}img{max-width:100%;max-height:580px;object-fit:contain}#preview{min-height:80px;background:#f4f6fa;padding:12px;border:1px dashed #a9b6c7;border-radius:9px}.muted{color:#738396;font-size:12px}h2{margin-top:0}@media(max-width:800px){.grid{grid-template-columns:1fr}.fields{grid-template-columns:1fr 1fr}}</style></head><body><header><h1>Controle · Captura do apontamento diário</h1><div>Da ficha de corte e solda ao Dashboard de Produção</div></header><main><a class="button secondary" href="./">← Dashboard de produção</a><div class="note">O reconhecimento OCR ocorre no próprio navegador, sem chave da OpenAI. Escrita à mão pode ser interpretada incorretamente: confira os horários e quantidades e corrija os campos antes de lançar. Os dados são salvos apenas neste navegador e podem ser exportados.</div>
-<div class="grid"><section class="panel"><h2>1. Capturar ficha</h2><label>Foto ou imagem da ficha</label><input id="photo" type="file" accept="image/*" capture="environment"><div class="controls"><button id="analyze" onclick="analyzePhoto()" type="button">🔎 Reconhecer foto (sem chave ou login)</button></div><div id="aiStatus" class="muted" role="status" aria-live="polite"></div><div style="margin:12px 0"><label>Texto reconhecido (editável para correção)</label><textarea id="ocrText" rows="5" placeholder="O resultado do reconhecimento aparecerá aqui. Você pode corrigir antes de extrair linhas."></textarea><div class="controls"><button class="secondary" type="button" onclick="ocrToDraft()">Extrair possíveis bobinas do texto</button></div></div><div id="preview"><span class="muted">Selecione uma fotografia para visualizar e conferir o preenchimento.</span></div><p class="muted">OCR executado no navegador. Na primeira utilização é necessário carregar o mecanismo e dados do idioma pela internet. Nenhuma chave é necessária. Fotos não são gravadas no histórico.</p><label>Importar planilha CSV (se disponível)</label><input id="csv" type="file" accept=".csv,text/csv"><p class="muted">Cabeçalhos aceitos: data, operador, bobina, tamanho, produto, inicio, fim, quantidade, paradas. Separador ; ou vírgula.</p></section>
-<section class="panel"><h2>2. Identificar o apontamento</h2><div class="fields"><div><label>Data</label><input type="date" id="date"></div><div><label>Operador</label><input id="operator" list="workers" placeholder="Gustavo"><datalist id="workers"><option value="Gustavo"><option value="Lucas"></datalist></div><div><label>Tamanho</label><input id="size" placeholder="16×20"></div></div><p class="muted">Adicione bobinas manualmente abaixo; os campos serão preenchidos com esta identificação.</p><label>Colar apontamentos em linhas (opcional)</label><textarea id="paste" rows="5" placeholder="1;Preto Gratidão;07:15;08:24;5000;0&#10;2;Prata Gratidão;08:38;09:50;3100;15"></textarea><p class="muted">Formato: bobina; produto; início; fim; quantidade; paradas (min). Use uma linha por bobina.</p><div class="controls"><button onclick="parsePaste()">Converter linhas em rascunho</button><button class="secondary" onclick="add()">+ Adicionar bobina</button></div></section></div>
-<section class="panel"><h2>3. Conferência antes do lançamento</h2><p class="muted">Campos vazios de quantidade e horário continuam vazios; não serão interpretados como zero. Revise horários inconsistentes e duplicidades.</p><div class="scroll"><table><thead><tr><th>Data</th><th>Operador</th><th>Bobina</th><th>Tamanho</th><th>Produto/cor</th><th>Início</th><th>Fim</th><th>Unidades</th><th>Paradas (min)</th><th></th></tr></thead><tbody id="rows"></tbody></table></div><div class="controls"><button class="secondary" onclick="add()">+ Linha</button><button onclick="commit()">Confirmar e lançar no histórico</button><button class="secondary" onclick="clearDraft()">Limpar rascunho</button></div><div id="message"></div></section>
-<section class="panel"><h2>Segurança dos registros</h2><p class="muted">O lançamento alimenta o mesmo histórico local utilizado pelo dashboard. Um registro com mesma data, operador e número de bobina será bloqueado para impedir duplicação acidental. Como não há banco central, outros computadores não receberão automaticamente as alterações.</p><div class="controls"><button class="secondary" onclick="backup()">Exportar backup completo do histórico</button><a class="button secondary" href="./">Voltar ao dashboard</a></div></section></main>
+<div class="panel"><h2>Enviar foto da ficha de produção</h2><p class="muted">Envie apenas a fotografia. O sistema interpreta a ficha e apresenta o painel de análise antes de qualquer gravação. Em leituras manuscritas duvidosas, exibe alertas sem inventar números.</p><input id="photo" type="file" accept="image/png,image/jpeg,image/webp" capture="environment"><div class="controls"><button id="analyze" onclick="analyzePhoto()" type="button">Analisar fotografia e gerar dashboard</button><button class="secondary" onclick="discard()">Descartar análise</button></div><div id="aiStatus" class="muted" role="status" aria-live="polite"></div><div id="preview"></div></div>
+<div id="results" style="display:none">
+<div class="panel"><h2>Prévia do dashboard — ainda não salvo</h2><div class="fields" id="summary"></div><p id="warnings" class="note"></p><div class="grid"><div><h3>Unidades por bobina</h3><canvas id="qtyChart" width="480" height="260"></canvas></div><div><h3>Produtividade por bobina (un./h)</h3><canvas id="speedChart" width="480" height="260"></canvas></div></div><div class="scroll"><table><thead><tr><th>Data</th><th>Operador</th><th>Bobina</th><th>Produto / tamanho</th><th>Início</th><th>Fim</th><th>Quantidade</th><th>Parada</th><th>Un./h</th><th>Leitura</th></tr></thead><tbody id="resultsBody"></tbody></table></div><div class="controls"><button onclick="commit()">Aprovar dashboard e salvar produção</button><button class="secondary" onclick="discard()">Descartar sem salvar</button></div><div id="message"></div></div></div></main>
 <script>
-const KEY='sanpa-prod-2026', F=['date','operator','bobbin','size','product','start','end','qty','stops'];let draft=[];
-const $=id=>document.getElementById(id), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function draw(){let t=$('rows');t.innerHTML=draft.map((r,i)=>'<tr>'+F.map(k=>'<td><input aria-label="'+esc(k)+'" '+(k==='date'?'type="date"':k==='start'||k==='end'?'type="time"':k==='qty'||k==='stops'||k==='bobbin'?'type="number" min="0"':'type="text"')+' value="'+esc(r[k]??'')+'" onchange="edit('+i+',\''+k+'\',this.value)"></td>').join('')+'<td><button class="secondary" onclick="remove('+i+')">×</button></td></tr>').join('')}
-window.edit=(i,k,v)=>{draft[i][k]=v};window.remove=i=>{draft.splice(i,1);draw()};
-function add(r={}){draft.push({date:$('date').value||new Date().toISOString().slice(0,10),operator:$('operator').value||'',bobbin:draft.length+1,size:$('size').value||'',product:'',start:'',end:'',qty:'',stops:'0',...r});draw()}
-function parsePaste(){let lines=$('paste').value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);for(let line of lines){let a=line.split(';').map(s=>s.trim());if(a.length<5){alert('Confira esta linha (mínimo 5 campos): '+line);return}add({bobbin:a[0],product:a[1],start:a[2],end:a[3],qty:a[4],stops:a[5]||'0'})}$('paste').value=''}
-async function analyzePhoto(){
- const f=$("photo").files[0];if(!f)return alert("Selecione a fotografia da ficha.");
- if(!window.Tesseract){$("aiStatus").textContent="Não foi possível carregar o OCR. Verifique a conexão com a internet e atualize a página.";return;}
- const btn=$("analyze");btn.disabled=true;
- try {
-  $("aiStatus").textContent="Carregando OCR e analisando foto no navegador...";
-  const worker=await Tesseract.createWorker("por",1,{logger:m=>{if(m.status)$("aiStatus").textContent=m.status+" "+Math.round((m.progress||0)*100)+"%";}});
-  try{
-   const result=await worker.recognize(f);
-   $("ocrText").value=result.data.text||"";
-   $("aiStatus").textContent="Leitura concluída (confiança média informada pelo OCR: "+Math.round(result.data.confidence||0)+"%). Revise o texto e use 'Extrair possíveis bobinas'.";
-  }finally{await worker.terminate();}
- }catch(e){$("aiStatus").textContent="Não foi possível executar o OCR: "+e.message+". Use a digitação assistida.";}
- finally{btn.disabled=false;}
-}
-function ocrToDraft(){
- const t=$("ocrText").value;
- if(!t.trim())return alert("Reconheça uma fotografia ou cole o texto primeiro.");
- // Sugere possíveis registros somente quando há início e fim reconhecíveis;
- // campos difíceis ficam vazios para revisão humana.
- const lines=t.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
- const parsed=[];
- for(const line of lines){
-   let times=[...line.matchAll(/\b([01]?\d|2[0-3])[:h.]([0-5]\d)\b/gi)].map(m=>m[1].padStart(2,"0")+":"+m[2]);
-   if(times.length<2)continue;
-   let num=line.match(/^\s*(\d{1,2})(?:[.\s|;-]|$)/);
-   let product=line.replace(/\b([01]?\d|2[0-3])[:h.]([0-5]\d)\b/gi," ").replace(/^\s*\d{1,2}[.\s|;-]*/," ").replace(/\s+/g," ").trim();
-   // Quantidade OCR manuscrita é ambígua: não assumir números finais.
-   parsed.push({bobbin:num?Number(num[1]):parsed.length+1,product:product.slice(0,100),start:times[0],end:times[1],qty:"",stops:""});
+const KEY="sanpa-prod-2026";let previewRows=[],report=null;
+const $=id=>document.getElementById(id),esc=t=>String(t??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function minutes(t){const m=/^([01]\\d|2[0-3]):([0-5]\\d)$/.exec(t||"");return m?Number(m[1])*60+Number(m[2]):null}
+function fmt(n){return Number.isFinite(n)?Math.round(n).toLocaleString("pt-BR"):"—"}
+function parseTime(txt){let m=/(?:^|\\D)([01]?\\d|2[0-3])[h:.]([0-5]\\d)(?!\\d)/i.exec(txt||"");return m?m[1].padStart(2,"0")+":"+m[2]:""}
+function parsePhotoText(text){
+ const lines=text.split(/\\r?\\n/).map(t=>t.trim()).filter(Boolean);
+ let full=text.match(/(?:data|dia)\\s*[:=]?\\s*(\\d{1,2})[\\/.\\-](\\d{1,2})[\\/.\\-](\\d{2,4})/i);
+ let date=full?((full[3].length===2?"20"+full[3]:full[3])+"-"+full[2].padStart(2,"0")+"-"+full[1].padStart(2,"0")):"";
+ let operator=(text.match(/(?:operador|funcion[aá]rio)\\s*[:=]?\\s*([A-Za-zÀ-ÿ]{3,20})/i)||[])[1]||"";
+ let size=(text.match(/\\b(16|20|25|30|40)\\s*[x×X]\\s*(20|30|35|40|50)\\b/)||[])[0]||"";
+ let rows=[],warnings=[];
+ // Only lines with 2 distinct time marks are assumed to have start/end;
+ // never generate a numerical quantity from unanchored OCR numbers.
+ for(let line of lines){
+  let stamps=[...line.matchAll(/(?:^|\\D)([01]?\\d|2[0-3])[h:.]([0-5]\\d)(?!\\d)/gi)].map(m=>m[1].padStart(2,"0")+":"+m[2]);
+  if(stamps.length<2)continue;
+  let num=line.match(/^\\s*(\\d{1,2})(?:[.)\\s|;-]|$)/);
+  let tail=line.replace(/([01]?\\d|2[0-3])[h:.]([0-5]\\d)/gi," ").replace(/^\\s*\\d{1,2}[.)\\s|;-]*/," ").trim();
+  // Quantity only when OCR produces an explicit label; unlabeled long numbers can be sizes / weights.
+  let qm=line.match(/(?:qtd|quantidade|total|unidades|unid)\\s*[:=]?\\s*(\\d{3,7})\\b/i);
+  let product=tail.replace(/(?:qtd|quantidade|total|unidades|unid)\\s*[:=]?\\s*\\d+/i,"").replace(/\\s+/g," ").slice(0,110);
+  let n=num?+num[1]:rows.length+1;
+  rows.push({date,operator,bobbin:n,size,product,start:stamps[0],end:stamps[1],qty:qm?+qm[1]:null,stops:null,uncertain:!qm||!date||!operator||!size,notes:"OCR local — conferir dados manuscritos"});
  }
- if(!parsed.length){$("aiStatus").textContent="O OCR encontrou texto, mas não identificou duas horas na mesma linha. Transcreva os valores conferindo a foto ou use o campo de colagem.";return;}
- if(draft.length&&!confirm("Adicionar "+parsed.length+" sugestões ao rascunho atual?"))return;
- for(const row of parsed)add(row);
- $("aiStatus").textContent=parsed.length+" possíveis bobinas adicionadas para revisão. As quantidades e paradas estão vazias porque o OCR manuscrito não é confiável o suficiente para preenchê-las automaticamente.";
+ if(!date)warnings.push("Data não reconhecida");
+ if(!operator)warnings.push("Operador não reconhecido");
+ if(!size)warnings.push("Medida não reconhecida");
+ if(!rows.length)warnings.push("Não foi possível identificar bobinas com horários de início e fim");
+ if(rows.some(r=>r.qty===null))warnings.push("Algumas quantidades não puderam ser identificadas com segurança");
+ return {date,operator,size,rows,warnings};
 }
-function clearDraft(){if(confirm('Limpar todos os dados ainda não lançados?')){draft=[];draw()}}
-function time(s){return !s||/^([01]\d|2[0-3]):[0-5]\d$/.test(s)}
-function normalize(r){return {date:r.date,operator:r.operator.trim(),bobbin:+r.bobbin,size:r.size.trim(),product:r.product.trim(),start:r.start||'',end:r.end||'',qty:r.qty===''||r.qty==null?null:+r.qty,stops:r.stops===''?null:+r.stops}}
-function commit(){if(!draft.length)return alert('Adicione ao menos uma bobina.');let old=[];try{old=JSON.parse(localStorage.getItem(KEY)||'[]')}catch{alert('Histórico local inválido. Faça backup antes de continuar.');return}if(!Array.isArray(old))return alert('Histórico inválido.');let clean=[],keys=new Set(old.map(r=>r.date+'|'+r.operator.toLowerCase()+'|'+r.bobbin)),errors=[];
-draft.forEach((r,i)=>{let n=normalize(r),key=n.date+'|'+n.operator.toLowerCase()+'|'+n.bobbin;if(!/^\d{4}-\d\d-\d\d$/.test(n.date)||!n.operator||!n.product||!n.size||!Number.isInteger(n.bobbin)||n.bobbin<1||!time(n.start)||!time(n.end)||n.qty!==null&&(!Number.isFinite(n.qty)||n.qty<0)||n.stops!==null&&(!Number.isFinite(n.stops)||n.stops<0))errors.push('Linha '+(i+1)+': dados inválidos');else if(n.start&&n.end&&n.end<n.start)errors.push('Linha '+(i+1)+': fim anterior ao início');else if(keys.has(key))errors.push('Linha '+(i+1)+': bobina já existente no histórico ou repetida');else{keys.add(key);clean.push(n)}});if(errors.length){$('message').innerHTML='<div class="note">'+errors.map(esc).join('<br>')+'</div>';return}if(!confirm('Lançar '+clean.length+' bobina(s) no histórico deste navegador?'))return;try{localStorage.setItem(KEY,JSON.stringify([...old,...clean]));draft=[];draw();$('message').innerHTML='<div class="green">'+clean.length+' bobina(s) lançada(s). Abra o dashboard para ver os indicadores atualizados.</div>'}catch(e){alert('Não foi possível salvar neste navegador. Exporte seus dados antes de tentar novamente.')}}
-$('photo').onchange=e=>{let f=e.target.files[0];if(!f)return;let url=URL.createObjectURL(f);$('preview').innerHTML='';let img=document.createElement('img');img.alt='Imagem da ficha diária selecionada';img.src=url;img.onload=()=>URL.revokeObjectURL(url);$('preview').append(img)};
-function parseCSV(text){let sep=(text.split(/\r?\n/)[0].includes(';')?';':',');let lines=text.replace(/^\ufeff/,'').split(/\r?\n/).filter(Boolean),headers=lines.shift().split(sep).map(x=>x.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g,''));const aliases={date:['data','date'],operator:['operador','operator'],bobbin:['bobina','bobbin'],size:['tamanho','size','medida'],product:['produto','product','cor'],start:['inicio','start'],end:['fim','end'],qty:['quantidade','qty','unidades'],stops:['paradas','stops','paradas_min']};if(!aliases.operator.some(h=>headers.includes(h))||!aliases.product.some(h=>headers.includes(h)))throw Error('CSV deve ter ao menos operador e produto.');for(let line of lines){let a=line.split(sep).map(x=>x.replace(/^"|"$/g,'').trim()),r={};for(let k of F){let idx=headers.findIndex(h=>aliases[k].includes(h));if(idx>=0)r[k]=a[idx]}add(r)}}
-$('csv').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{parseCSV(await f.text());$('message').textContent='CSV importado para conferência. Nenhuma linha foi salva ainda.'}catch(err){alert(err.message)}e.target.value=''};
-function backup(){let s=localStorage.getItem(KEY);if(!s)return alert('Ainda não há histórico local neste navegador.');let b=new Blob([s],{type:'application/json'}),url=URL.createObjectURL(b),a=document.createElement('a');a.href=url;a.download='sanpa-historico-producao.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
-$('date').value=new Date().toISOString().slice(0,10);
+async function analyzePhoto(){
+ const f=$("photo").files[0];if(!f)return alert("Selecione a fotografia");
+ if(!window.Tesseract)return $("aiStatus").textContent="Biblioteca de reconhecimento indisponível. Atualize a página com internet.";
+ $("analyze").disabled=true;$("results").style.display="none";$("aiStatus").textContent="Interpretando foto localmente…";
+ try{
+  const worker=await Tesseract.createWorker("por",1,{logger:m=>{if(m.status)$("aiStatus").textContent=m.status+" "+Math.round((m.progress||0)*100)+"%";}});
+  let res;try{res=await worker.recognize(f)}finally{await worker.terminate()}
+  report=parsePhotoText(res.data.text||"");
+  report.warnings.unshift("OCR convencional não garante leitura completa de manuscritos. Valores não reconhecidos permanecem vazios.");
+  previewRows=report.rows;$("aiStatus").textContent="Análise concluída. Confira o resultado antes de aprovar.";
+  render();
+ }catch(e){$("aiStatus").textContent="Não foi possível processar a foto: "+e.message}finally{$("analyze").disabled=false}
+}
+function render(){
+ $("results").style.display="block";
+ const q=previewRows.reduce((n,r)=>n+(Number(r.qty)||0),0),
+ valid=previewRows.filter(r=>Number.isFinite(r.qty)&&r.qty!==null&&minutes(r.end)!==null&&minutes(r.start)!==null&&minutes(r.end)>minutes(r.start));
+ const mins=valid.reduce((n,r)=>n+minutes(r.end)-minutes(r.start),0);
+ const missing=previewRows.filter(r=>r.qty===null||!r.start||!r.end||!r.date||!r.operator||!r.product||!r.size);
+ const metrics=[["Bobinas identificadas",fmt(previewRows.length)],["Unidades reconhecidas",fmt(q)],["Ritmo calculável",mins?fmt(q*60/mins)+" un./h":"Não calculável"],["Registros incompletos",fmt(missing.length)]];
+ $("summary").innerHTML=metrics.map(m=>'<div class="panel" style="margin:0"><label>'+m[0]+'</label><b style="font-size:22px">'+m[1]+'</b></div>').join("");
+ $("warnings").textContent=[...report.warnings, ...missing.length?["Existem campos incompletos: o lançamento está bloqueado para não registrar dados inventados."]:[]].join(" • ");
+ $("resultsBody").innerHTML=previewRows.map(r=>{let t=minutes(r.end)-minutes(r.start);let v=Number.isFinite(r.qty)&&r.qty!==null&&t>0?r.qty*60/t:null;return "<tr>"+[r.date||"Não lida",r.operator||"Não lido",r.bobbin,r.product+" / "+(r.size||"—"),r.start||"—",r.end||"—",r.qty===null?"Não lida":fmt(r.qty),r.stops===null?"Não lida":r.stops,fmt(v),r.uncertain?"Incerta":"OCR"].map(x=>"<td>"+esc(x)+"</td>").join("")+"</tr>"}).join("");
+ bar("qtyChart",previewRows.map(r=>r.qty||0),"#0e8992");
+ bar("speedChart",previewRows.map(r=>{let d=minutes(r.end)-minutes(r.start);return r.qty!==null&&d>0?r.qty*60/d:0}),"#5265b3");
+}
+function bar(id,values,color){let c=$(id),ctx=c.getContext("2d"),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);let max=Math.max(...values,1),bw=(w-45)/Math.max(values.length,1);values.forEach((v,i)=>{ctx.fillStyle=color;let bh=Math.max(0,(h-55)*(v/max));ctx.fillRect(20+i*bw,h-32-bh,Math.max(6,bw*.65),bh);ctx.fillStyle="#314358";ctx.font="12px sans-serif";ctx.fillText("B"+previewRows[i].bobbin,20+i*bw,h-12)})}
+function discard(){previewRows=[];report=null;$("results").style.display="none";$("aiStatus").textContent="Análise descartada. Nenhum dado foi salvo."}
+function commit(){
+ if(!previewRows.length)return alert("Nenhum registro disponível.");
+ if(previewRows.some(r=>r.qty===null||!r.date||!r.operator||!r.product||!r.size||!r.start||!r.end||!Number.isInteger(r.bobbin)))return alert("A leitura possui campos não identificados. Nada foi salvo. Envie uma foto mais nítida ou use o leitor por IA para extrair os manuscritos.");
+ let old=[];try{old=JSON.parse(localStorage.getItem(KEY)||"[]")}catch{return alert("Histórico local inválido")}
+ const ids=new Set(old.map(r=>[r.date,r.operator.toLowerCase(),r.bobbin].join("|")));
+ for(let r of previewRows){let k=[r.date,r.operator.toLowerCase(),r.bobbin].join("|");if(ids.has(k))return alert("Bobina duplicada: "+k);ids.add(k)}
+ if(!confirm("Aprovar dashboard e lançar "+previewRows.length+" bobinas no histórico?"))return;
+ try{localStorage.setItem(KEY,JSON.stringify([...old,...previewRows.map(({uncertain,notes,...r})=>r)]));$("message").innerHTML='<div class="green">Lançamento salvo no histórico deste navegador. Abra o dashboard para analisar.</div>'}catch(e){alert("Falha ao salvar: "+e.message)}
+}
+$("photo").onchange=e=>{const f=e.target.files[0];if(!f)return;let url=URL.createObjectURL(f),img=document.createElement("img");img.src=url;img.alt="Foto selecionada";img.onload=()=>URL.revokeObjectURL(url);$("preview").replaceChildren(img);discard()};
 </script></body></html>
