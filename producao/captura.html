@@ -1,12 +1,12 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SANPA • Captura de produção</title><script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script><style>
-*{box-sizing:border-box}body{margin:0;background:#f1f4f8;color:#203149;font:14px system-ui}header{background:#17365d;color:white;padding:23px 5%}header h1{margin:0;font-size:25px}main{max-width:1350px;margin:22px auto;padding:0 18px}.panel{background:white;border:1px solid #dce5ef;border-radius:12px;padding:20px;margin:15px 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.fields{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}label{display:block;font-size:12px;font-weight:700;color:#687a8d;margin:7px 0}input,select,textarea{padding:10px;width:100%;border:1px solid #d4dfe9;border-radius:7px;font:inherit}button,.button{background:#136c81;color:white;border:0;padding:11px 15px;border-radius:8px;cursor:pointer;text-decoration:none;font-weight:700;display:inline-block}button.secondary,.button.secondary{background:#e8edf5;color:#273a54}.controls{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px}.note{background:#fff4dd;border-radius:8px;padding:11px;margin:12px 0;color:#795b22}.green{background:#e2f5ed;color:#206a50;padding:11px;border-radius:8px}.scroll{overflow:auto}table{border-collapse:collapse;width:100%}th,td{border-bottom:1px solid #edf0f4;padding:9px;white-space:nowrap;text-align:left}td input{min-width:95px}th{color:#66798c;font-size:12px}img{max-width:100%;max-height:580px;object-fit:contain}#preview{min-height:80px;background:#f4f6fa;padding:12px;border:1px dashed #a9b6c7;border-radius:9px}.muted{color:#738396;font-size:12px}h2{margin-top:0}@media(max-width:800px){.grid{grid-template-columns:1fr}.fields{grid-template-columns:1fr 1fr}}</style></head><body><header><h1>Controle · Captura do apontamento diário</h1><div>Da ficha de corte e solda ao Dashboard de Produção</div></header><main><a class="button secondary" href="./">← Dashboard de produção</a><div class="note">O reconhecimento OCR ocorre no próprio navegador, sem chave da OpenAI. Escrita à mão pode ser interpretada incorretamente: confira os horários e quantidades e corrija os campos antes de lançar. Os dados são salvos apenas neste navegador e podem ser exportados.</div>
-<div class="panel"><h2>Enviar foto da ficha de produção</h2><p class="muted">Envie apenas a fotografia. O sistema interpreta a ficha e apresenta o painel de análise antes de qualquer gravação. Em leituras manuscritas duvidosas, exibe alertas sem inventar números.</p><input id="photo" type="file" accept="image/png,image/jpeg,image/webp" capture="environment"><div class="controls"><button id="analyze" onclick="analyzePhoto()" type="button">Analisar fotografia e gerar dashboard</button><button class="secondary" onclick="discard()">Descartar análise</button></div><div id="aiStatus" class="muted" role="status" aria-live="polite"></div><div id="preview"></div></div>
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SANPA • Captura de produção</title><script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script><script src="./regras-turno.js"></script><style>
+*{box-sizing:border-box}body{margin:0;background:#f1f4f8;color:#203149;font:14px system-ui}header{background:#17365d;color:white;padding:23px 5%}header h1{margin:0;font-size:25px}main{max-width:1350px;margin:22px auto;padding:0 18px}.panel{background:white;border:1px solid #dce5ef;border-radius:12px;padding:20px;margin:15px 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.fields{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}label{display:block;font-size:12px;font-weight:700;color:#687a8d;margin:7px 0}input,select,textarea{padding:10px;width:100%;border:1px solid #d4dfe9;border-radius:7px;font:inherit}button,.button{background:#136c81;color:white;border:0;padding:11px 15px;border-radius:8px;cursor:pointer;text-decoration:none;font-weight:700;display:inline-block}button.secondary,.button.secondary{background:#e8edf5;color:#273a54}.controls{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px}.note{background:#fff4dd;border-radius:8px;padding:11px;margin:12px 0;color:#795b22}.green{background:#e2f5ed;color:#206a50;padding:11px;border-radius:8px}.scroll{overflow:auto}table{border-collapse:collapse;width:100%}th,td{border-bottom:1px solid #edf0f4;padding:9px;white-space:nowrap;text-align:left}td input{min-width:95px}th{color:#66798c;font-size:12px}img{max-width:100%;max-height:580px;object-fit:contain}#preview{min-height:80px;background:#f4f6fa;padding:12px;border:1px dashed #a9b6c7;border-radius:9px}.muted{color:#738396;font-size:12px}h2{margin-top:0}@media(max-width:800px){.grid{grid-template-columns:1fr}.fields{grid-template-columns:1fr 1fr}}</style></head><body><header><h1>Controle · Captura do apontamento diário</h1><div>Da ficha de corte e solda ao Dashboard de Produção</div></header><main><a class="button secondary" href="./">← Dashboard de produção</a><div class="note">Regras da produção: almoço às 12h, encerramento normal às 21h; horário posterior registrado prevalece. Se o fim estiver vazio, registrar observação e seguir para a próxima bobina. O OCR local é experimental, sem senha ou API; nenhuma informação ilegível será inventada.</div>
+<div class="panel"><h2>Enviar foto da ficha de produção</h2><p class="muted">Selecione a fotografia: a leitura começa automaticamente e o sistema gera um dashboard antes de qualquer gravação. Campos ilegíveis serão sinalizados sem inventar números.</p><input id="photo" type="file" accept="image/png,image/jpeg,image/webp" capture="environment"><div class="controls"><button id="analyze" onclick="analyzePhoto()" type="button">Analisar fotografia e gerar dashboard</button><button class="secondary" onclick="discard()">Descartar análise</button></div><div id="aiStatus" class="muted" role="status" aria-live="polite"></div><div id="preview"></div></div>
 <div id="results" style="display:none">
-<div class="panel"><h2>Prévia do dashboard — ainda não salvo</h2><div class="fields" id="summary"></div><p id="warnings" class="note"></p><div class="grid"><div><h3>Unidades por bobina</h3><canvas id="qtyChart" width="480" height="260"></canvas></div><div><h3>Produtividade por bobina (un./h)</h3><canvas id="speedChart" width="480" height="260"></canvas></div></div><div class="scroll"><table><thead><tr><th>Data</th><th>Operador</th><th>Bobina</th><th>Produto / tamanho</th><th>Início</th><th>Fim</th><th>Quantidade</th><th>Parada</th><th>Un./h</th><th>Leitura</th></tr></thead><tbody id="resultsBody"></tbody></table></div><div class="controls"><button onclick="commit()">Aprovar dashboard e salvar produção</button><button class="secondary" onclick="discard()">Descartar sem salvar</button></div><div id="message"></div></div></div></main>
+<div class="panel"><h2>Prévia do dashboard — ainda não salvo</h2><div class="fields" id="summary"></div><p id="warnings" class="note"></p><div class="grid"><div><h3>Unidades por bobina</h3><canvas id="qtyChart" width="480" height="260"></canvas></div><div><h3>Produtividade por bobina (un./h)</h3><canvas id="speedChart" width="480" height="260"></canvas></div></div><div class="scroll"><table><thead><tr><th>Data</th><th>Operador</th><th>Bobina</th><th>Produto / tamanho</th><th>Início</th><th>Fim</th><th>Quantidade</th><th>Parada</th><th>Un./h</th><th>Leitura</th><th>Observações / turno</th></tr></thead><tbody id="resultsBody"></tbody></table></div><div class="controls"><button onclick="commit()">Aprovar dashboard e salvar produção</button><button class="secondary" onclick="discard()">Descartar sem salvar</button></div><div id="message"></div></div></div></main>
 <script>
 const KEY="sanpa-prod-2026";let previewRows=[],report=null;
 const $=id=>document.getElementById(id),esc=t=>String(t??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-function minutes(t){const m=/^([01]\\d|2[0-3]):([0-5]\\d)$/.exec(t||"");return m?Number(m[1])*60+Number(m[2]):null}
+function minutes(t){return SanpaShift.minute(t)}
 function fmt(n){return Number.isFinite(n)?Math.round(n).toLocaleString("pt-BR"):"—"}
 function parseTime(txt){let m=/(?:^|\\D)([01]?\\d|2[0-3])[h:.]([0-5]\\d)(?!\\d)/i.exec(txt||"");return m?m[1].padStart(2,"0")+":"+m[2]:""}
 function parsePhotoText(text){
@@ -59,27 +59,55 @@ async function analyzePhoto(){
 }
 function render(){
  $("results").style.display="block";
- const q=previewRows.reduce((n,r)=>n+(Number(r.qty)||0),0),
- valid=previewRows.filter(r=>Number.isFinite(r.qty)&&r.qty!==null&&minutes(r.end)!==null&&minutes(r.start)!==null&&minutes(r.end)>minutes(r.start));
- const mins=valid.reduce((n,r)=>n+minutes(r.end)-minutes(r.start),0);
- const missing=previewRows.filter(r=>r.qty===null||!r.start||!r.end||!r.date||!r.operator||!r.product||!r.size);
- const metrics=[["Blocos da ficha apresentados",fmt(previewRows.length)],["Unidades reconhecidas",fmt(q)],["Ritmo calculável",mins?fmt(q*60/mins)+" un./h":"Não calculável"],["Registros incompletos",fmt(missing.length)]];
- $("summary").innerHTML=metrics.map(m=>'<div class="panel" style="margin:0"><label>'+m[0]+'</label><b style="font-size:22px">'+m[1]+'</b></div>').join("");
- $("warnings").textContent=[...report.warnings, ...missing.length?["Existem campos incompletos: o lançamento está bloqueado para não registrar dados inventados."]:[]].join(" • ");
- $("resultsBody").innerHTML=previewRows.map(r=>{let t=minutes(r.end)-minutes(r.start);let v=Number.isFinite(r.qty)&&r.qty!==null&&t>0?r.qty*60/t:null;return "<tr>"+[r.date||"Não lida",r.operator||"Não lido",r.bobbin,r.product+" / "+(r.size||"—"),r.start||"—",r.end||"—",r.qty===null?"Não lida":fmt(r.qty),r.stops===null?"Não lida":r.stops,fmt(v),r.uncertain?"Incerta":"OCR"].map(x=>"<td>"+esc(x)+"</td>").join("")+"</tr>"}).join("");
- bar("qtyChart",previewRows.map(r=>r.qty||0),"#0e8992");
- bar("speedChart",previewRows.map(r=>{let d=minutes(r.end)-minutes(r.start);return r.qty!==null&&d>0?r.qty*60/d:0}),"#5265b3");
+ const active=previewRows.filter(r=>SanpaShift.inspect(r).active);
+ const qtyRows=active.filter(r=>r.qty!==null&&Number.isFinite(+r.qty));
+ const total=qtyRows.reduce((n,r)=>n+(+r.qty),0);
+ const rateRows=active.filter(r=>r.qty!==null&&SanpaShift.inspect(r).minutes!==null);
+ const rateMinutes=rateRows.reduce((n,r)=>n+SanpaShift.inspect(r).minutes,0);
+ const rateQty=rateRows.reduce((n,r)=>n+(+r.qty),0);
+ const unfinished=active.filter(r=>SanpaShift.inspect(r).flags.includes("fim-ausente")).length;
+ const late=active.filter(r=>SanpaShift.inspect(r).afterHours).length;
+ const uncertain=active.filter(r=>r.qty===null||!r.date||!r.operator||!r.product||!r.size||!r.start);
+ const metrics=[["Bobinas com apontamentos",fmt(active.length)],["Unidades identificadas",qtyRows.length?fmt(total):"Não identificadas"],["Produtividade válida",rateMinutes?fmt(rateQty*60/rateMinutes)+" un./h":"Sem base suficiente"],["Finalizações ausentes",fmt(unfinished)],["Após 21h anotado",fmt(late)],["Campos importantes ausentes",fmt(uncertain.length)]];
+ $("summary").innerHTML=metrics.map(m=>'<div class="panel" style="margin:0"><label>'+esc(m[0])+'</label><b style="font-size:20px">'+esc(m[1])+'</b></div>').join("");
+ const warnings=[...(report?.warnings||[])];
+ if(!active.length)warnings.push("Nenhuma bobina com dados comprovados na foto. Os blocos exibidos são apenas campos da ficha, não produção.");
+ if(unfinished)warnings.push(unfinished+" bobina(s) sem fim: não foi presumido 12h nem 21h.");
+ if(active.some(r=>SanpaShift.inspect(r).lunchCrossing))warnings.push("Bobina atravessando 12h: produtividade excluída até que a pausa esteja documentada.");
+ if(uncertain.length)warnings.push("Dados ilegíveis ou ausentes são mostrados sem preenchimento fictício.");
+ $("warnings").textContent=warnings.join(" • ");
+ $("resultsBody").innerHTML=previewRows.map(r=>{
+   const rule=SanpaShift.inspect(r),m=rule.minutes,rate=r.qty!==null&&m!==null?+r.qty*60/m:null;
+   const notes=[r.notes,...rule.notes].filter(Boolean).join(" | ");
+   return "<tr>"+[r.date||"Não lida",r.operator||"Não lido",r.bobbin,r.product+" / "+(r.size||"—"),r.start||"—",r.end||"Não informado",r.qty===null?"Não lida":fmt(+r.qty),r.stops===null?"Não lida":r.stops,fmt(rate),rule.active?(r.uncertain?"Incerta":"OCR"):"Campo sem produção confirmada",notes].map(x=>"<td>"+esc(x)+"</td>").join("")+"</tr>";
+ }).join("");
+ bar("qtyChart",active.map(r=>r.qty===null?null:+r.qty),"#0e8992",active);
+ bar("speedChart",active.map(r=>{let m=SanpaShift.inspect(r).minutes;return r.qty!==null&&m!==null?+r.qty*60/m:null}),"#5265b3",active);
 }
-function bar(id,values,color){let c=$(id),ctx=c.getContext("2d"),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);let max=Math.max(...values,1),bw=(w-45)/Math.max(values.length,1);values.forEach((v,i)=>{ctx.fillStyle=color;let bh=Math.max(0,(h-55)*(v/max));ctx.fillRect(20+i*bw,h-32-bh,Math.max(6,bw*.65),bh);ctx.fillStyle="#314358";ctx.font="12px sans-serif";ctx.fillText("B"+previewRows[i].bobbin,20+i*bw,h-12)})}
+function bar(id,values,color,rows){
+ const c=$(id),ctx=c.getContext("2d"),w=c.width,h=c.height;
+ ctx.clearRect(0,0,w,h);ctx.fillStyle="#64748b";ctx.font="14px sans-serif";
+ if(!values.some(v=>v!==null&&Number.isFinite(v)&&v>0)){ctx.fillText("Sem valores confiáveis para representar",14,45);return}
+ const max=Math.max(...values.filter(v=>v!==null&&Number.isFinite(v)),1),bw=(w-45)/Math.max(values.length,1);
+ values.forEach((v,i)=>{if(v!==null&&Number.isFinite(v)){ctx.fillStyle=color;let bh=Math.max(0,(h-55)*(v/max));ctx.fillRect(20+i*bw,h-32-bh,Math.max(6,bw*.65),bh)}
+ ctx.fillStyle="#314358";ctx.font="12px sans-serif";ctx.fillText("B"+rows[i].bobbin,20+i*bw,h-12)});
+}
 function discard(){previewRows=[];report=null;$("results").style.display="none";$("aiStatus").textContent="Análise descartada. Nenhum dado foi salvo."}
 function commit(){
- if(!previewRows.length)return alert("Nenhum registro disponível.");
- if(previewRows.some(r=>r.qty===null||!r.date||!r.operator||!r.product||!r.size||!r.start||!r.end||!Number.isInteger(r.bobbin)))return alert("A leitura possui campos não identificados. Nada foi salvo. Envie uma foto mais nítida ou use o leitor por IA para extrair os manuscritos.");
+ const usable=previewRows.filter(r=>SanpaShift.inspect(r).active);
+ if(!usable.length)return alert("Não há produção reconhecida. Nada será gravado.");
+ // A missing end is an observation, not a reason to reject the next bobbin.
+ if(usable.some(r=>r.qty===null||!r.date||!r.operator||!r.product||!r.size||!r.start||!Number.isInteger(r.bobbin)))
+   return alert("Não é possível gravar os apontamentos porque faltam dados essenciais da foto. Nenhum valor será inventado. A prévia continua disponível.");
+ if(usable.some(r=>SanpaShift.inspect(r).flags.includes("horario-invalido")))
+   return alert("Foi detectado término anterior ao início; nenhum registro foi salvo.");
  let old=[];try{old=JSON.parse(localStorage.getItem(KEY)||"[]")}catch{return alert("Histórico local inválido")}
+ if(!Array.isArray(old))return alert("Histórico local inválido");
  const ids=new Set(old.map(r=>[r.date,r.operator.toLowerCase(),r.bobbin].join("|")));
- for(let r of previewRows){let k=[r.date,r.operator.toLowerCase(),r.bobbin].join("|");if(ids.has(k))return alert("Bobina duplicada: "+k);ids.add(k)}
- if(!confirm("Aprovar dashboard e lançar "+previewRows.length+" bobinas no histórico?"))return;
- try{localStorage.setItem(KEY,JSON.stringify([...old,...previewRows.map(({uncertain,notes,...r})=>r)]));$("message").innerHTML='<div class="green">Lançamento salvo no histórico deste navegador. Abra o dashboard para analisar.</div>'}catch(e){alert("Falha ao salvar: "+e.message)}
+ for(let r of usable){let k=[r.date,r.operator.toLowerCase(),r.bobbin].join("|");if(ids.has(k))return alert("Bobina duplicada: "+k);ids.add(k)}
+ if(!confirm("Aprovar os "+usable.length+" registros para o histórico? Fins ausentes serão gravados apenas como observação."))return;
+ const rows=usable.map(r=>({...r,notes:[r.notes,...SanpaShift.inspect(r).notes].filter(Boolean).join(" | ")}));
+ try{localStorage.setItem(KEY,JSON.stringify([...old,...rows]));$("message").innerHTML='<div class="green">Produção aprovada e salva. Horários ausentes foram registrados como observações, sem estimativas.</div>'}catch(e){alert("Falha ao salvar: "+e.message)}
 }
-$("photo").onchange=e=>{const f=e.target.files[0];if(!f)return;let url=URL.createObjectURL(f),img=document.createElement("img");img.src=url;img.alt="Foto selecionada";img.onload=()=>URL.revokeObjectURL(url);$("preview").replaceChildren(img);discard()};
+$("photo").onchange=e=>{const f=e.target.files[0];if(!f)return;let url=URL.createObjectURL(f),img=document.createElement("img");img.src=url;img.alt="Foto selecionada";img.onload=()=>URL.revokeObjectURL(url);$("preview").replaceChildren(img);discard();analyzePhoto()};
 </script></body></html>
