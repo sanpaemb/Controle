@@ -10,30 +10,38 @@ function minutes(t){const m=/^([01]\\d|2[0-3]):([0-5]\\d)$/.exec(t||"");return m
 function fmt(n){return Number.isFinite(n)?Math.round(n).toLocaleString("pt-BR"):"—"}
 function parseTime(txt){let m=/(?:^|\\D)([01]?\\d|2[0-3])[h:.]([0-5]\\d)(?!\\d)/i.exec(txt||"");return m?m[1].padStart(2,"0")+":"+m[2]:""}
 function parsePhotoText(text){
- const lines=text.split(/\\r?\\n/).map(t=>t.trim()).filter(Boolean);
- let full=text.match(/(?:data|dia)\\s*[:=]?\\s*(\\d{1,2})[\\/.\\-](\\d{1,2})[\\/.\\-](\\d{2,4})/i);
- let date=full?((full[3].length===2?"20"+full[3]:full[3])+"-"+full[2].padStart(2,"0")+"-"+full[1].padStart(2,"0")):"";
- let operator=(text.match(/(?:operador|funcion[aá]rio)\\s*[:=]?\\s*([A-Za-zÀ-ÿ]{3,20})/i)||[])[1]||"";
- let size=(text.match(/\\b(16|20|25|30|40)\\s*[x×X]\\s*(20|30|35|40|50)\\b/)||[])[0]||"";
- let rows=[],warnings=[];
- // Only lines with 2 distinct time marks are assumed to have start/end;
- // never generate a numerical quantity from unanchored OCR numbers.
- for(let line of lines){
-  let stamps=[...line.matchAll(/(?:^|\\D)([01]?\\d|2[0-3])[h:.]([0-5]\\d)(?!\\d)/gi)].map(m=>m[1].padStart(2,"0")+":"+m[2]);
-  if(stamps.length<2)continue;
-  let num=line.match(/^\\s*(\\d{1,2})(?:[.)\\s|;-]|$)/);
-  let tail=line.replace(/([01]?\\d|2[0-3])[h:.]([0-5]\\d)/gi," ").replace(/^\\s*\\d{1,2}[.)\\s|;-]*/," ").trim();
-  // Quantity only when OCR produces an explicit label; unlabeled long numbers can be sizes / weights.
-  let qm=line.match(/(?:qtd|quantidade|total|unidades|unid)\\s*[:=]?\\s*(\\d{3,7})\\b/i);
-  let product=tail.replace(/(?:qtd|quantidade|total|unidades|unid)\\s*[:=]?\\s*\\d+/i,"").replace(/\\s+/g," ").slice(0,110);
-  let n=num?+num[1]:rows.length+1;
-  rows.push({date,operator,bobbin:n,size,product,start:stamps[0],end:stamps[1],qty:qm?+qm[1]:null,stops:null,uncertain:!qm||!date||!operator||!size,notes:"OCR local — conferir dados manuscritos"});
+ const dateMatch=text.match(/(?:DATA|DIA)\s*[:.]?\s*(\d{1,2})\s*[\/.\-]\s*(\d{1,2})\s*[\/.\-]\s*(\d{2,4})/i);
+ const date=dateMatch?((dateMatch[3].length===2?"20"+dateMatch[3]:dateMatch[3])+"-"+dateMatch[2].padStart(2,"0")+"-"+dateMatch[1].padStart(2,"0")):"";
+ const operator=(text.match(/OPERADOR\s*[:.]?\s*([A-Za-zÀ-ÿ]{3,25})/i)||[])[1]||"";
+ const size=(text.match(/\b(16|20|25|30|40)\s*[x×X]\s*(20|30|35|40|50)\b/)||[])[0]||"";
+ const warnings=[],rows=[];
+ // The preprinted form always has six sections. OCR reading order is not
+ // necessarily row-based, so segment by BOBINA headers when available.
+ const markers=[...text.matchAll(/\bBOB[I1l]NA\s*([1-6])\b/gi)];
+ const indices=new Set();
+ for(let i=0;i<markers.length;i++){
+  const n=Number(markers[i][1]);
+  if(indices.has(n))continue;
+  indices.add(n);
+  const start=markers[i].index+markers[i][0].length;
+  const end=i+1<markers.length?markers[i+1].index:text.length;
+  const body=text.slice(start,end);
+  const stamps=[...body.matchAll(/\b([01]?\d|2[0-3])\s*[:h.]\s*([0-5]\d)\b/gi)].map(m=>m[1].padStart(2,"0")+":"+m[2]);
+  const qm=body.match(/(?:QTD\.?\s*produzida|quantidade\s*produzida)\s*[:.]?\s*([\d.]{3,9})/i);
+  const qty=qm?Number(qm[1].replace(/\./g,"")):null;
+  const productMatch=body.match(/(?:material\s*\/?\s*medida)\s*[:.]?\s*([^\n]{2,95})/i);
+  rows.push({date,operator,bobbin:n,size,product:productMatch?(productMatch[1].trim()):"",start:stamps[0]||"",end:stamps[1]||"",qty:Number.isFinite(qty)?qty:null,stops:null,uncertain:true,notes:"Extração por OCR: leitura manuscrita não confirmada"});
  }
- if(!date)warnings.push("Data não reconhecida");
- if(!operator)warnings.push("Operador não reconhecido");
- if(!size)warnings.push("Medida não reconhecida");
- if(!rows.length)warnings.push("Não foi possível identificar bobinas com horários de início e fim");
- if(rows.some(r=>r.qty===null))warnings.push("Algumas quantidades não puderam ser identificadas com segurança");
+ rows.sort((a,b)=>a.bobbin-b.bobbin);
+ if(!rows.length){
+   // Identify the form layout, without falsely claiming that six bobbins were used.
+   warnings.push("OCR não identificou os cabeçalhos de cada bobina; mostrando os seis campos do formulário como candidatos, sem assumir produção.");
+   for(let n=1;n<=6;n++)rows.push({date,operator,bobbin:n,size,product:"",start:"",end:"",qty:null,stops:null,uncertain:true,notes:"Campo da ficha — não reconhecido pelo OCR"});
+ }
+ if(!date)warnings.push("Data manuscrita não reconhecida");
+ if(!operator)warnings.push("Operador manuscrito não reconhecido");
+ if(!size)warnings.push("Medida manuscrita não reconhecida");
+ if(rows.some(r=>r.qty===null))warnings.push("Quantidade não reconhecida em uma ou mais bobinas; não foi estimada");
  return {date,operator,size,rows,warnings};
 }
 async function analyzePhoto(){
@@ -44,7 +52,7 @@ async function analyzePhoto(){
   const worker=await Tesseract.createWorker("por",1,{logger:m=>{if(m.status)$("aiStatus").textContent=m.status+" "+Math.round((m.progress||0)*100)+"%";}});
   let res;try{res=await worker.recognize(f)}finally{await worker.terminate()}
   report=parsePhotoText(res.data.text||"");
-  report.warnings.unshift("OCR convencional não garante leitura completa de manuscritos. Valores não reconhecidos permanecem vazios.");
+  report.warnings.unshift("Leitura experimental: os blocos podem ser apenas campos vazios da ficha, não bobinas efetivamente utilizadas. Confirme visualmente antes de considerar resultados.");
   previewRows=report.rows;$("aiStatus").textContent="Análise concluída. Confira o resultado antes de aprovar.";
   render();
  }catch(e){$("aiStatus").textContent="Não foi possível processar a foto: "+e.message}finally{$("analyze").disabled=false}
@@ -55,7 +63,7 @@ function render(){
  valid=previewRows.filter(r=>Number.isFinite(r.qty)&&r.qty!==null&&minutes(r.end)!==null&&minutes(r.start)!==null&&minutes(r.end)>minutes(r.start));
  const mins=valid.reduce((n,r)=>n+minutes(r.end)-minutes(r.start),0);
  const missing=previewRows.filter(r=>r.qty===null||!r.start||!r.end||!r.date||!r.operator||!r.product||!r.size);
- const metrics=[["Bobinas identificadas",fmt(previewRows.length)],["Unidades reconhecidas",fmt(q)],["Ritmo calculável",mins?fmt(q*60/mins)+" un./h":"Não calculável"],["Registros incompletos",fmt(missing.length)]];
+ const metrics=[["Blocos da ficha apresentados",fmt(previewRows.length)],["Unidades reconhecidas",fmt(q)],["Ritmo calculável",mins?fmt(q*60/mins)+" un./h":"Não calculável"],["Registros incompletos",fmt(missing.length)]];
  $("summary").innerHTML=metrics.map(m=>'<div class="panel" style="margin:0"><label>'+m[0]+'</label><b style="font-size:22px">'+m[1]+'</b></div>').join("");
  $("warnings").textContent=[...report.warnings, ...missing.length?["Existem campos incompletos: o lançamento está bloqueado para não registrar dados inventados."]:[]].join(" • ");
  $("resultsBody").innerHTML=previewRows.map(r=>{let t=minutes(r.end)-minutes(r.start);let v=Number.isFinite(r.qty)&&r.qty!==null&&t>0?r.qty*60/t:null;return "<tr>"+[r.date||"Não lida",r.operator||"Não lido",r.bobbin,r.product+" / "+(r.size||"—"),r.start||"—",r.end||"—",r.qty===null?"Não lida":fmt(r.qty),r.stops===null?"Não lida":r.stops,fmt(v),r.uncertain?"Incerta":"OCR"].map(x=>"<td>"+esc(x)+"</td>").join("")+"</tr>"}).join("");
