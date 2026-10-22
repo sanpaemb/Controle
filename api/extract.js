@@ -1,6 +1,9 @@
 export default async function handler(req,res) {
   if(req.method !== 'POST') return res.status(405).json({error:'Use POST'});
   const key=process.env.OPENAI_API_KEY;
+  const pin=process.env.CAPTURE_PIN;
+  if(!pin) return res.status(503).json({error:'Configure CAPTURE_PIN no servidor antes de habilitar a leitura por IA.'});
+  if(req.headers['x-capture-pin']!==pin) return res.status(401).json({error:'Código de acesso de IA incorreto.'});
   if(!key) return res.status(503).json({error:'Leitura por IA não configurada: falta OPENAI_API_KEY no servidor.'});
   try {
     const {image,date,operator,size}=req.body||{};
