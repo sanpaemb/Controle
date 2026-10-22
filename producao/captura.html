@@ -26,11 +26,20 @@ function parsePhotoText(text){
   const start=markers[i].index+markers[i][0].length;
   const end=i+1<markers.length?markers[i+1].index:text.length;
   const body=text.slice(start,end);
-  const stamps=[...body.matchAll(/\b([01]?\d|2[0-3])\s*[:h.]\s*([0-5]\d)\b/gi)].map(m=>m[1].padStart(2,"0")+":"+m[2]);
+  const extractClock=label=>{
+   const pos=body.search(label);
+   if(pos<0)return "";
+   const fragment=body.slice(pos,pos+120).split(/\n/).slice(0,3).join(" ");
+   const m=fragment.match(/\b([01]?\d|2[0-3])\s*[:h.]\s*([0-5]\d)\b/);
+   return m?m[1].padStart(2,"0")+":"+m[2]:"";
+  };
+  const started=extractClock(/in[ií]cio\s*(?:do\s*)?cort[eoi]/i);
+  const ended=extractClock(/fim\s*(?:do\s*)?cort[eoi]/i);
+  const stamps=[started,ended];
   const qm=body.match(/(?:QTD\.?\s*produzida|quantidade\s*produzida)\s*[:.]?\s*([\d.]{3,9})/i);
   const qty=qm?Number(qm[1].replace(/\./g,"")):null;
   const productMatch=body.match(/(?:material\s*\/?\s*medida)\s*[:.]?\s*([^\n]{2,95})/i);
-  rows.push({date,operator,bobbin:n,size,product:productMatch?(productMatch[1].trim()):"",start:stamps[0]||"",end:stamps[1]||"",qty:Number.isFinite(qty)?qty:null,stops:null,uncertain:true,notes:"Extração por OCR: leitura manuscrita não confirmada"});
+  rows.push({date,operator,bobbin:n,size,product:productMatch?(productMatch[1].trim()):"",start:stamps[0]||"",end:stamps[1]||"",qty:Number.isFinite(qty)?qty:null,stops:null,uncertain:true,notes:ended?"Extração por OCR: conferir leitura manuscrita":"Horário de finalização não informado na ficha ou ilegível; próxima bobina analisada"});
  }
  rows.sort((a,b)=>a.bobbin-b.bobbin);
  if(!rows.length){
@@ -50,7 +59,7 @@ async function analyzePhoto(){
  $("analyze").disabled=true;$("results").style.display="none";$("aiStatus").textContent="Interpretando foto localmente…";
  try{
   const worker=await Tesseract.createWorker("por",1,{logger:m=>{if(m.status)$("aiStatus").textContent=m.status+" "+Math.round((m.progress||0)*100)+"%";}});
-  let res;try{res=await worker.recognize(f)}finally{await worker.terminate()}
+  let res;try{await worker.setParameters({tessedit_pageseg_mode:"11"});res=await worker.recognize(f)}finally{await worker.terminate()}
   report=parsePhotoText(res.data.text||"");
   report.warnings.unshift("Leitura experimental: os blocos podem ser apenas campos vazios da ficha, não bobinas efetivamente utilizadas. Confirme visualmente antes de considerar resultados.");
   previewRows=report.rows;$("aiStatus").textContent="Análise concluída. Confira o resultado antes de aprovar.";
