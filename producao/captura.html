@@ -12,8 +12,9 @@ function parseTime(txt){let m=/(?:^|\\D)([01]?\\d|2[0-3])[h:.]([0-5]\\d)(?!\\d)/
 function parsePhotoText(text){
  const dateMatch=text.match(/(?:DATA|DIA)\s*[:.]?\s*(\d{1,2})\s*[\/.\-]\s*(\d{1,2})\s*[\/.\-]\s*(\d{2,4})/i);
  const date=dateMatch?((dateMatch[3].length===2?"20"+dateMatch[3]:dateMatch[3])+"-"+dateMatch[2].padStart(2,"0")+"-"+dateMatch[1].padStart(2,"0")):"";
- const operator=(text.match(/OPERADOR\s*[:.]?\s*([A-Za-zÀ-ÿ]{3,25})/i)||[])[1]||"";
- const size=(text.match(/\b(16|20|25|30|40)\s*[x×X]\s*(20|30|35|40|50)\b/)||[])[0]||"";
+ const rawOperator=(text.match(/OPERADOR\s*[:.]?\s*([A-Za-zÀ-ÿ]{3,25})/i)||[])[1]||"";
+ const operator=/^lucas$/i.test(rawOperator)?"Lucas":/^gustavo$/i.test(rawOperator)?"Gustavo":rawOperator;
+ const size=((text.match(/\b(16|20|25|30|40)\s*[x×X]\s*(20|30|35|40|50)\b/)||[])[0]||"").replace(/\s*[xX×]\s*/g,"×");
  const warnings=[],rows=[];
  // The preprinted form always has six sections. OCR reading order is not
  // necessarily row-based, so segment by BOBINA headers when available.
@@ -30,7 +31,9 @@ function parsePhotoText(text){
    const pos=body.search(label);
    if(pos<0)return "";
    const fragment=body.slice(pos,pos+120).split(/\n/).slice(0,3).join(" ");
-   const m=fragment.match(/\b([01]?\d|2[0-3])\s*[:h.]\s*([0-5]\d)\b/);
+   const stop=fragment.search(/(?:fim\s*(?:do\s*)?cort[eoi]|qtd\.?\s*produzid[ao]|quantidade|refugo|parada\s*inicio)/i);
+   const safe=stop>5?fragment.slice(0,stop):fragment;
+   const m=safe.match(/\b([01]?\d|2[0-3])\s*[:h.]\s*([0-5]\d)\b/);
    return m?m[1].padStart(2,"0")+":"+m[2]:"";
   };
   const started=extractClock(/in[ií]cio\s*(?:do\s*)?cort[eoi]/i);
