@@ -78,7 +78,8 @@ export default async function handler(req,res){
  if(req.method==='GET')return res.status(200).json({service:'SANPA Vision',ready:Boolean(process.env.OPENAI_API_KEY&&process.env.CAPTURE_PIN),authRequired:true});
  if(req.method!=='POST')return fail(res,405,'Método não permitido.');
  const key=process.env.OPENAI_API_KEY,pin=process.env.CAPTURE_PIN;
- if(!key||!pin)return fail(res,503,'Leitura por IA aguardando configuração privada na Vercel: OPENAI_API_KEY e CAPTURE_PIN.');
+ if(!key)return fail(res,503,'Falta configurar OPENAI_API_KEY no ambiente Production da Vercel. O código de acesso já pode estar configurado; a leitura depende da chave da API.');
+ if(!pin)return fail(res,503,'Falta configurar CAPTURE_PIN no ambiente Production da Vercel.');
  // Uma senha no servidor protege o consumo da API de terceiros. Não há PIN embutido no código.
  if(typeof req.headers['x-capture-pin']!=='string'||req.headers['x-capture-pin']!==pin)return fail(res,401,'Código de acesso incorreto. Informe o código configurado na Vercel.');
  let data=req.body;
