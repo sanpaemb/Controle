@@ -4,7 +4,7 @@
 <label for="capturePin">Código de acesso ao leitor de IA (uma vez por aba)</label>
 <div class="controls"><input style="max-width:240px" id="capturePin" type="password" autocomplete="off" placeholder="Código de acesso" aria-label="Código de acesso à IA"><button onclick="activateAccess()" type="button">Ativar leitura</button></div>
 <p class="muted">Esse código é definido pela administração na Vercel e usado apenas para proteger os créditos de IA. Depois da ativação, basta fotografar as fichas.</p>
-</div><div class="controls"><button id="analyze" onclick="analyzePhoto()" type="button">Ler novamente com IA</button><button class="secondary" onclick="discard()">Descartar análise</button></div><div id="aiStatus" class="muted" role="status" aria-live="polite"></div><div id="preview"></div></div>
+</div><div class="controls"><button class="secondary" type="button" id="testApi" onclick="testOpenAI()">Testar conexão com a OpenAI</button><button id="analyze" onclick="analyzePhoto()" type="button">Ler novamente com IA</button><button class="secondary" onclick="discard()">Descartar análise</button></div><div id="aiStatus" class="muted" role="status" aria-live="polite"></div><div id="preview"></div></div>
 <div id="results" style="display:none">
 <div class="panel"><h2>Prévia do dashboard — ainda não salvo</h2><div class="fields" id="summary"></div><p id="warnings" class="note"></p><div class="grid"><div><h3>Unidades por bobina</h3><canvas id="qtyChart" width="480" height="260"></canvas></div><div><h3>Produtividade por bobina (un./h)</h3><canvas id="speedChart" width="480" height="260"></canvas></div></div><div class="scroll"><table><thead><tr><th>Data</th><th>Operador</th><th>Bobina</th><th>Produto / tamanho</th><th>Início</th><th>Fim</th><th>Quantidade</th><th>Parada</th><th>Un./h</th><th>Leitura</th><th>Observações / turno</th></tr></thead><tbody id="resultsBody"></tbody></table></div><div class="controls"><button id="saveButton" onclick="commit()">Aprovar dashboard e salvar produção</button><button class="secondary" onclick="downloadPreview()">Baixar prévia JSON</button><button class="secondary" onclick="discard()">Descartar sem salvar</button></div><div id="message"></div></div></div></main>
 <script>
@@ -26,6 +26,19 @@ function activateAccess(){
 function showStatus(text,kind='info'){
  $('aiStatus').textContent=text;
  $('aiStatus').style.color=kind==='error'?'#a02e3b':kind==='ok'?'#157a51':'#687a8d';
+}
+
+async function testOpenAI(){
+ const pin=sessionStorage.getItem(PIN_KEY);
+ if(!pin){$('accessPanel').style.display='block';showStatus('Informe o código de acesso e clique em Ativar leitura para testar a conexão.');return;}
+ const btn=$('testApi');btn.disabled=true;showStatus('Verificando a autenticação com a OpenAI sem enviar foto…');
+ try{
+  const response=await fetch('/api/extract',{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','x-capture-pin':pin},body:JSON.stringify({testConnection:true})});
+  const data=await response.json();
+  if(response.status===401&&data.code!=='authentication_failed'&&data.code!=='invalid_api_key'){sessionStorage.removeItem(PIN_KEY);$('accessPanel').style.display='block';}
+  showStatus((data.ok?'Conexão aprovada: ':'Falha no teste: ')+(data.message||data.error||'Erro '+response.status),data.ok?'ok':'error');
+ }catch(e){showStatus('Não foi possível concluir o teste de conexão: '+e.message,'error')}
+ finally{btn.disabled=false}
 }
 async function makePayload(file){
  const img=await new Promise((ok,fail)=>{
