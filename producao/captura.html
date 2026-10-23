@@ -292,7 +292,10 @@ function commit(){
  try{
   localStorage.setItem(KEY,JSON.stringify([...old,...newRows]));
   alreadySaved=true;$('saveButton').disabled=true;
-  $('message').innerHTML='<div class="green">Análise aprovada: '+rows.length+' bobina(s) salva(s) no histórico deste navegador. <a href="./">Abrir dashboard</a></div>';
+  const dates=[...new Set(rows.map(r=>r.date))];
+  if(dates.length===1)sessionStorage.setItem('sanpa-selected-date',dates[0]);
+  const suffix=dates.length===1?'?data='+encodeURIComponent(dates[0]):'';
+  $('message').innerHTML='<div class="green">Análise aprovada: '+rows.length+' bobina(s) salva(s) no histórico deste navegador. <a href="./'+suffix+'">Abrir dashboard com filtro da data importada</a></div>';
  }catch(e){alert('Falha ao salvar: '+e.message)}
 }
 function downloadPreview(){
