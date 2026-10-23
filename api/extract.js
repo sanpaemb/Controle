@@ -77,7 +77,7 @@ export default async function handler(req,res){
  res.setHeader('X-Content-Type-Options','nosniff');
  if(req.method==='GET')return res.status(200).json({service:'SANPA Vision',ready:Boolean(process.env.OPENAI_API_KEY&&process.env.CAPTURE_PIN),authRequired:true});
  if(req.method!=='POST')return fail(res,405,'Método não permitido.');
- const key=process.env.OPENAI_API_KEY,pin=process.env.CAPTURE_PIN;
+ const key=String(process.env.OPENAI_API_KEY||'').trim().replace(/^Bearer\s+/i,'').replace(/^["']|["']$/g,'').trim(),pin=process.env.CAPTURE_PIN;
  if(!key)return fail(res,503,'Falta configurar OPENAI_API_KEY no ambiente Production da Vercel. O código de acesso já pode estar configurado; a leitura depende da chave da API.');
  if(!pin)return fail(res,503,'Falta configurar CAPTURE_PIN no ambiente Production da Vercel.');
  // Uma senha no servidor protege o consumo da API de terceiros. Não há PIN embutido no código.
@@ -85,6 +85,24 @@ export default async function handler(req,res){
  let data=req.body;
  if(typeof data==='string'){try{data=JSON.parse(data)}catch{return fail(res,400,'Dados da imagem inválidos.')}}
  if(!data||typeof data!=='object')return fail(res,400,'Envie uma fotografia.');
+ // Diagnóstico privado e gratuito da autenticação, sem enviar fotografias.
+ if(data.testConnection===true){
+  if(!/^sk-[A-Za-z0-9_-]{12,}$/.test(key))return res.status(422).json({ok:false,code:'key_format',error:'O valor de OPENAI_API_KEY não parece uma chave de API OpenAI. Verifique o valor completo na Vercel.'});
+  try{
+   const ctrl=new AbortController(),tm=setTimeout(()=>ctrl.abort(),12000);
+   let upstream;
+   try{upstream=await fetch('https://api.openai.com/v1/models/'+encodeURIComponent(MODEL),{headers:{Authorization:'Bearer '+key},signal:ctrl.signal})}finally{clearTimeout(tm)}
+   if(upstream.ok)return res.status(200).json({ok:true,code:'connected',message:'Chave autenticada. O modelo de visão está acessível.',model:MODEL});
+   let errBody={};try{errBody=await upstream.json()}catch{}
+   const ecode=String(errBody?.error?.code||'').slice(0,64);
+   if(upstream.status===401)return res.status(401).json({ok:false,code:ecode||'authentication_failed',error:'A OpenAI recusou a chave (HTTP 401). Confira se a chave ativa e completa do projeto correto está cadastrada em OPENAI_API_KEY na Vercel.'});
+   if(upstream.status===404)return res.status(404).json({ok:false,code:'model_unavailable',error:'A chave foi aceita, mas o modelo '+MODEL+' não está disponível neste projeto. Configure OPENAI_VISION_MODEL para um modelo permitido.'});
+   if(upstream.status===403)return res.status(403).json({ok:false,code:ecode||'permission_denied',error:'A chave foi recebida, mas este projeto não tem permissão para acessar o modelo '+MODEL+'.'});
+   if(upstream.status===429)return res.status(429).json({ok:false,code:ecode||'rate_limited',error:'A OpenAI recusou a chamada por limite ou saldo. Confira os limites e faturamento da API.'});
+   return res.status(502).json({ok:false,code:ecode||'upstream_error',error:'Falha na verificação da OpenAI (HTTP '+upstream.status+').'});
+  }catch(e){return res.status(502).json({ok:false,code:'connection_error',error:e?.name==='AbortError'?'A verificação da OpenAI excedeu o tempo limite.':'Não foi possível acessar a OpenAI pelo servidor.'})}
+ }
+
  const imgs=[data.image,...(Array.isArray(data.crops)?data.crops.slice(0,2):[])];
  if(!imgs[0]||imgs.some(x=>typeof x!=='string'||!IMG.test(x))||JSON.stringify(data).length>MAX_REQUEST_CHARS)return fail(res,413,'Imagem inválida ou muito grande. Tire uma foto mais nítida ou reduza o tamanho.');
  try {
@@ -106,7 +124,7 @@ export default async function handler(req,res){
   try{result=await reply.json()}catch{return fail(res,502,'A API de visão não retornou uma resposta válida.')}
   if(!reply.ok){
    const code=result?.error?.code||'';
-   if(reply.status===401)return fail(res,502,'Chave da API inválida ou sem permissão. Verifique OPENAI_API_KEY na Vercel.');
+   if(reply.status===401)return fail(res,502,'A OpenAI recusou a credencial (HTTP 401, código '+String(code||'authentication_failed').slice(0,64)+'). Use o botão Testar conexão com a OpenAI antes de ler a foto.');
    if(reply.status===429)return fail(res,429,'Limite ou saldo da API OpenAI atingido. Verifique faturamento e limites na plataforma OpenAI.');
    return fail(res,502,'Falha da API de visão ('+reply.status+'): '+trim(result?.error?.message,180));
   }
