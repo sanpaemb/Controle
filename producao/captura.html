@@ -1,10 +1,21 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SANPA • Captura de produção</title><script src="./regras-turno.js"></script><style>
-*{box-sizing:border-box}body{margin:0;background:#f1f4f8;color:#203149;font:14px system-ui}header{background:#17365d;color:white;padding:23px 5%}header h1{margin:0;font-size:25px}main{max-width:1350px;margin:22px auto;padding:0 18px}.panel{background:white;border:1px solid #dce5ef;border-radius:12px;padding:20px;margin:15px 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.fields{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}label{display:block;font-size:12px;font-weight:700;color:#687a8d;margin:7px 0}input,select,textarea{padding:10px;width:100%;border:1px solid #d4dfe9;border-radius:7px;font:inherit}button,.button{background:#136c81;color:white;border:0;padding:11px 15px;border-radius:8px;cursor:pointer;text-decoration:none;font-weight:700;display:inline-block}button.secondary,.button.secondary{background:#e8edf5;color:#273a54}.controls{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px}.note{background:#fff4dd;border-radius:8px;padding:11px;margin:12px 0;color:#795b22}.green{background:#e2f5ed;color:#206a50;padding:11px;border-radius:8px}.scroll{overflow:auto}table{border-collapse:collapse;width:100%}th,td{border-bottom:1px solid #edf0f4;padding:9px;white-space:nowrap;text-align:left}td input{min-width:95px}th{color:#66798c;font-size:12px}img{max-width:100%;max-height:580px;object-fit:contain}#preview{min-height:80px;background:#f4f6fa;padding:12px;border:1px dashed #a9b6c7;border-radius:9px}.muted{color:#738396;font-size:12px}h2{margin-top:0}@media(max-width:800px){.grid{grid-template-columns:1fr}.fields{grid-template-columns:1fr 1fr}}.controls input[type="password"]{flex:1}.panel{min-width:0}canvas{width:100%;max-width:100%;height:auto}#results .fields{grid-template-columns:repeat(3,minmax(0,1fr))}.note p{margin-bottom:0}@media(max-width:850px){#results .fields{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:560px){#results .fields{grid-template-columns:1fr 1fr}button{width:100%}.controls{flex-direction:column}header{padding:18px}.panel{padding:14px}h2{font-size:19px}}</style></head><body><header><h1>Controle · Captura do apontamento diário</h1><div>Da ficha de corte e solda ao Dashboard de Produção</div></header><main><a class="button secondary" href="./">← Dashboard de produção</a><div class="note">Regras da produção: almoço às 12h, encerramento normal às 21h; horário posterior registrado prevalece. Se o fim estiver vazio, registrar observação e seguir para a próxima bobina. A fotografia agora é interpretada pela IA de visão da OpenAI. A prévia não grava nenhum dado; o salvamento depende da sua aprovação. Nunca são inventados horários ou quantidades.</div>
-<div class="panel"><h2>Enviar foto da ficha de produção</h2><p class="muted">Selecione uma foto nítida, mostrando a ficha inteira. A IA lê os blocos manuscritos e gera a prévia automaticamente. Não é necessário transcrever campos da produção.</p><input id="photo" type="file" accept="image/png,image/jpeg,image/webp" capture="environment"><div id="accessPanel" class="note" style="display:none">
+*{box-sizing:border-box}body{margin:0;background:#f1f4f8;color:#203149;font:14px system-ui}header{background:#17365d;color:white;padding:23px 5%}header h1{margin:0;font-size:25px}main{max-width:1350px;margin:22px auto;padding:0 18px}.panel{background:white;border:1px solid #dce5ef;border-radius:12px;padding:20px;margin:15px 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.fields{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}label{display:block;font-size:12px;font-weight:700;color:#687a8d;margin:7px 0}input,select,textarea{padding:10px;width:100%;border:1px solid #d4dfe9;border-radius:7px;font:inherit}button,.button{background:#136c81;color:white;border:0;padding:11px 15px;border-radius:8px;cursor:pointer;text-decoration:none;font-weight:700;display:inline-block}button.secondary,.button.secondary{background:#e8edf5;color:#273a54}.controls{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px}.note{background:#fff4dd;border-radius:8px;padding:11px;margin:12px 0;color:#795b22}.green{background:#e2f5ed;color:#206a50;padding:11px;border-radius:8px}.scroll{overflow:auto}table{border-collapse:collapse;width:100%}th,td{border-bottom:1px solid #edf0f4;padding:9px;white-space:nowrap;text-align:left}td input{min-width:95px}th{color:#66798c;font-size:12px}img{max-width:100%;max-height:580px;object-fit:contain}#preview{min-height:80px;background:#f4f6fa;padding:12px;border:1px dashed #a9b6c7;border-radius:9px}.muted{color:#738396;font-size:12px}h2{margin-top:0}@media(max-width:800px){.grid{grid-template-columns:1fr}.fields{grid-template-columns:1fr 1fr}}.controls input[type="password"]{flex:1}.panel{min-width:0}canvas{width:100%;max-width:100%;height:auto}#results .fields{grid-template-columns:repeat(3,minmax(0,1fr))}.note p{margin-bottom:0}@media(max-width:850px){#results .fields{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:560px){#results .fields{grid-template-columns:1fr 1fr}button{width:100%}.controls{flex-direction:column}header{padding:18px}.panel{padding:14px}h2{font-size:19px}}</style></head><body><header><h1>Controle · Captura do apontamento diário</h1><div>Da ficha de corte e solda ao Dashboard de Produção</div></header><main><a class="button secondary" href="./">← Dashboard de produção</a><div class="note">Novo fluxo sem API paga: envie a foto no ChatGPT, receba o arquivo JSON produzido a partir da imagem e importe esse arquivo aqui. O sistema monta o dashboard para aprovação, sem enviar fotos para a API nem consumir saldo OpenAI. Almoço: 12h. Fim regular: 21h (horário posterior escrito vale). Horário de fim ausente vira observação; nunca é inventado.</div>
+<div class="panel" style="border:2px solid #0e8189">
+  <h2>1. Importar leitura feita aqui no ChatGPT — sem gastar saldo de API</h2>
+  <p>Envie as fotos da ficha nesta conversa. O ChatGPT transcreve os registros e entrega um <strong>arquivo .json</strong>. Baixe o arquivo e selecione-o abaixo. Nenhuma informação precisa ser digitada.</p>
+  <label for="chatgptJson">Arquivo de leitura da ficha (.json)</label>
+  <input id="chatgptJson" type="file" accept=".json,application/json">
+  <div class="controls"><button type="button" onclick="document.getElementById('chatgptJson').click()">Selecionar JSON gerado no ChatGPT</button></div>
+  <div id="importStatus" class="muted" role="status" aria-live="polite">Nenhum arquivo importado. O histórico não será modificado até a sua aprovação.</div>
+  <p class="muted">O arquivo é processado localmente pelo navegador. Você pode abrir esta página mesmo sem saldo na API da OpenAI. Caso algum número manuscrito não esteja legível, o valor aparecerá como não identificado na prévia.</p>
+ </div>
+ <details class="panel"><summary style="cursor:pointer;font-size:16px;font-weight:700">2. Leitura automática dentro do site (opcional — usa saldo da API OpenAI)</summary>
+ <p class="muted">Utilize somente se a conta de API estiver com créditos e você quiser enviar a foto diretamente pelo site. A importação do ChatGPT acima não exige senha da IA e não usa a API.</p><div class="panel"><h2>Enviar foto da ficha de produção</h2><p class="muted">Esta opção usa a API OpenAI configurada na Vercel e pode gerar cobranças. Para não consumir saldo, utilize o importador do ChatGPT acima.</p><input id="photo" type="file" accept="image/png,image/jpeg,image/webp" capture="environment"><div id="accessPanel" class="note" style="display:none">
 <label for="capturePin">Código de acesso ao leitor de IA (uma vez por aba)</label>
 <div class="controls"><input style="max-width:240px" id="capturePin" type="password" autocomplete="off" placeholder="Código de acesso" aria-label="Código de acesso à IA"><button onclick="activateAccess()" type="button">Ativar leitura</button></div>
 <p class="muted">Esse código é definido pela administração na Vercel e usado apenas para proteger os créditos de IA. Depois da ativação, basta fotografar as fichas.</p>
 </div><div class="controls"><button class="secondary" type="button" id="testApi" onclick="testOpenAI()">Testar conexão com a OpenAI</button><button id="analyze" onclick="analyzePhoto()" type="button">Ler novamente com IA</button><button class="secondary" onclick="discard()">Descartar análise</button></div><div id="aiStatus" class="muted" role="status" aria-live="polite"></div><div id="preview"></div></div>
+</details>
 <div id="results" style="display:none">
 <div class="panel"><h2>Prévia do dashboard — ainda não salvo</h2><div class="fields" id="summary"></div><p id="warnings" class="note"></p><div class="grid"><div><h3>Unidades por bobina</h3><canvas id="qtyChart" width="480" height="260"></canvas></div><div><h3>Produtividade por bobina (un./h)</h3><canvas id="speedChart" width="480" height="260"></canvas></div></div><div class="scroll"><table><thead><tr><th>Data</th><th>Operador</th><th>Bobina</th><th>Produto / tamanho</th><th>Início</th><th>Fim</th><th>Quantidade</th><th>Parada</th><th>Un./h</th><th>Leitura</th><th>Observações / turno</th></tr></thead><tbody id="resultsBody"></tbody></table></div><div class="controls"><button id="saveButton" onclick="commit()">Aprovar dashboard e salvar produção</button><button class="secondary" onclick="downloadPreview()">Baixar prévia JSON</button><button class="secondary" onclick="discard()">Descartar sem salvar</button></div><div id="message"></div></div></div></main>
 <script>
@@ -69,6 +80,79 @@ async function makePayload(file){
  if(txt.length>3950000)body={image:jpeg(0,0,sw,sh,1650,.72),crops:[]};
  return body;
 }
+
+function toString(v,max=200){return typeof v==='string'?v.trim().slice(0,max):''}
+function normalizeTime(v){
+ if(v===null||v===undefined||v==='')return '';
+ const t=toString(v,16);
+ const m=/^(\d{1,2})[:h](\d{2})$/.exec(t);
+ if(!m||Number(m[1])>23||Number(m[2])>59)return '';
+ return m[1].padStart(2,'0')+':'+m[2];
+}
+function dateValid(d){
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(d))return false;
+ const [y,m,day]=d.split('-').map(Number);
+ const v=new Date(Date.UTC(y,m-1,day));
+ return v.getUTCFullYear()===y&&v.getUTCMonth()===m-1&&v.getUTCDate()===day;
+}
+function intValue(v){
+ if(v===null||v===undefined||v==='')return null;
+ if(typeof v!=='number'||!Number.isSafeInteger(v)||v<0)return null;
+ return v;
+}
+function importChatGPTObject(obj){
+ if(Array.isArray(obj))obj={rows:obj};
+ if(obj?.report && Array.isArray(obj.report?.rows))obj=obj.report;
+ if(!obj||typeof obj!=='object'||!Array.isArray(obj.rows))throw Error('Arquivo sem a lista "rows" de bobinas.');
+ if(obj.rows.length>100)throw Error('O arquivo contém mais de 100 bobinas; confira se selecionou o documento correto.');
+ const warnings=Array.isArray(obj.warnings)?obj.warnings.slice(0,35).map(x=>toString(x,240)).filter(Boolean):[];
+ const date=toString(obj.date,16),operator=toString(obj.operator,100),size=toString(obj.size,40).replace(/\s*[xX×]\s*/g,'×');
+ const seen=new Set(),rows=[];
+ for(let i=0;i<obj.rows.length;i++){
+  const r=obj.rows[i];
+  if(!r||typeof r!=='object')throw Error('Linha '+(i+1)+' inválida.');
+  const d=toString(r.date||date,16);
+  const op=toString(r.operator||operator,100);
+  const rz=toString(r.size||size,40).replace(/\s*[xX×]\s*/g,'×');
+  const bob=typeof r.bobbin==='number'&&Number.isInteger(r.bobbin)&&r.bobbin>0&&r.bobbin<=200?r.bobbin:null;
+  if(bob===null)throw Error('Número de bobina inválido na linha '+(i+1)+'.');
+  const key=d+'|'+op.toLocaleLowerCase('pt-BR')+'|'+bob;
+  if(seen.has(key))throw Error('Bobina '+bob+' repetida no arquivo para a mesma data e operador.');
+  seen.add(key);
+  const start=normalizeTime(r.start),end=normalizeTime(r.end);
+  const qty=intValue(r.qty);
+  const stops=r.stops===null||r.stops===undefined||r.stops===''?null:(typeof r.stops==='number'&&Number.isFinite(r.stops)&&r.stops>=0&&r.stops<=1440?r.stops:null);
+  const note=toString(r.notes,600);
+  const product=toString(r.product,160);
+  if(!product&&!start&&!end&&qty===null&&!note){warnings.push('Bobina '+bob+' ignorada porque não contém apontamento comprovado.');continue;}
+  if(!dateValid(d))warnings.push('Bobina '+bob+': data não reconhecida.');
+  if(!op)warnings.push('Bobina '+bob+': operador não reconhecido.');
+  if(r.start&&!start||r.end&&!end)warnings.push('Bobina '+bob+': horário com formato ilegível.');
+  if(r.qty!==null&&r.qty!==undefined&&qty===null)warnings.push('Bobina '+bob+': quantidade inválida; mantida em branco.');
+  rows.push({date:dateValid(d)?d:'',operator:op,size:rz,bobbin:bob,product,start,end,qty,stops,notes:note,uncertain:!!r.uncertain||qty===null||!start||!product});
+ }
+ if(!rows.length)throw Error('Não há bobinas preenchidas no arquivo. Nada foi importado ou salvo.');
+ rows.sort((a,b)=>a.date.localeCompare(b.date)||a.operator.localeCompare(b.operator)||a.bobbin-b.bobbin);
+ return {date,operator,size,rows,warnings};
+}
+function activateImportedReport(data){
+ // Importar apenas para revisão; commit é sempre uma operação separada, com confirmação.
+ discard(true);report=data;previewRows=data.rows;alreadySaved=false;
+ render();
+ $('results').scrollIntoView({behavior:'smooth',block:'start'});
+ $('importStatus').textContent='Arquivo interpretado: '+previewRows.length+' bobina(s) na prévia. Ainda não foi salvo.';
+ showStatus('Prévia importada sem utilizar API.','ok');
+}
+$('chatgptJson').addEventListener('change',async e=>{
+ const file=e.target.files?.[0];if(!file)return;
+ try{
+  if(file.size>2000000)throw Error('Arquivo JSON muito grande; limite de 2 MB.');
+  const content=JSON.parse((await file.text()).replace(/^\uFEFF/,''));
+  const report=importChatGPTObject(content);
+  activateImportedReport(report);
+ }catch(err){$('importStatus').textContent='Falha ao importar: '+err.message;}
+ finally{e.target.value=''}
+});
 function discard(silent=false){
  previewRows=[];report=null;alreadySaved=false;
  $('results').style.display='none';
@@ -208,6 +292,6 @@ $('photo').addEventListener('change',()=>{
  img.onload=()=>URL.revokeObjectURL(url);img.src=url;
  $('preview').replaceChildren(img);
  discard(true);
- analyzePhoto();
+ showStatus('Foto selecionada. Para utilizar a API paga, clique em Ler novamente com IA. Para o fluxo gratuito, envie a foto aqui no ChatGPT e importe o JSON acima.');
 });
 </script></body></html>
