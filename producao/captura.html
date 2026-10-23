@@ -133,7 +133,14 @@ function importChatGPTObject(obj){
  }
  if(!rows.length)throw Error('Não há bobinas preenchidas no arquivo. Nada foi importado ou salvo.');
  rows.sort((a,b)=>a.date.localeCompare(b.date)||a.operator.localeCompare(b.operator)||a.bobbin-b.bobbin);
- return {date,operator,size,rows,warnings};
+ const originalClosing=obj.closing&&typeof obj.closing==='object'&&!Array.isArray(obj.closing)?obj.closing:null;
+ const closing=originalClosing?{
+  reported_bobbins:intValue(originalClosing.reported_bobbins),
+  reported_total_qty:intValue(originalClosing.reported_total_qty),
+  reported_scrap_kg:typeof originalClosing.reported_scrap_kg==='number'&&Number.isFinite(originalClosing.reported_scrap_kg)&&originalClosing.reported_scrap_kg>=0?originalClosing.reported_scrap_kg:null
+ }:null;
+ if(closing&&closing.reported_bobbins!==null&&closing.reported_bobbins!==rows.length)warnings.push('Fechamento: '+closing.reported_bobbins+' bobinas declaradas versus '+rows.length+' transcritas.');
+ return {date,operator,size,rows,warnings,closing};
 }
 function activateImportedReport(data){
  // Importar apenas para revisão; commit é sempre uma operação separada, com confirmação.
@@ -216,8 +223,17 @@ function render(){
  ['Términos após 21h',fmt(afterHours)],
  ['Registros com lacunas',fmt(missing)]
  ];
+ const closing=report?.closing||null;
+ if(closing&&closing.reported_total_qty!==null)metrics.push(['Total no fechamento da ficha',fmt(closing.reported_total_qty)]);
+ if(closing&&closing.reported_scrap_kg!==null)metrics.push(['Refugo/perdas no fechamento',closing.reported_scrap_kg.toLocaleString('pt-BR',{maximumFractionDigits:3})+' kg']);
+ if(closing&&closing.reported_total_qty!==null&&qtyRows.length===active.length){
+  const difference=closing.reported_total_qty-total;
+  metrics.push(['Diferença do fechamento',difference===0?'Conferido':(difference>0?'+':'−')+fmt(Math.abs(difference))+' un.']);
+ }
  $('summary').innerHTML=metrics.map(m=>'<div class="panel" style="margin:0"><label>'+esc(m[0])+'</label><b style="font-size:21px">'+esc(m[1])+'</b></div>').join('');
  let warn=[...(report?.warnings||[])];
+ if(closing&&closing.reported_total_qty!==null&&qtyRows.length===active.length&&closing.reported_total_qty!==total)
+  warn.push('ALERTA DE CONFERÊNCIA: o rodapé declara '+fmt(closing.reported_total_qty)+' unidades e a soma por bobinas é '+fmt(total)+'. Nenhuma quantidade foi alterada automaticamente.');
  if(withoutEnd)warn.push('Finalizações em branco são observações, não geram horário fictício.');
  if(active.some(r=>SanpaShift.inspect(r).lunchCrossing))warn.push('Períodos que atravessam 12h sem pausa identificada ficam fora da produtividade.');
  if(missing)warn.push('Há campos não reconhecidos: somente a informação efetivamente lida entrará no histórico se você aprovar.');
