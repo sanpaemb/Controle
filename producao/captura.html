@@ -1,125 +1,200 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SANPA • Captura de produção</title><script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script><script src="./regras-turno.js"></script><style>
-*{box-sizing:border-box}body{margin:0;background:#f1f4f8;color:#203149;font:14px system-ui}header{background:#17365d;color:white;padding:23px 5%}header h1{margin:0;font-size:25px}main{max-width:1350px;margin:22px auto;padding:0 18px}.panel{background:white;border:1px solid #dce5ef;border-radius:12px;padding:20px;margin:15px 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.fields{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}label{display:block;font-size:12px;font-weight:700;color:#687a8d;margin:7px 0}input,select,textarea{padding:10px;width:100%;border:1px solid #d4dfe9;border-radius:7px;font:inherit}button,.button{background:#136c81;color:white;border:0;padding:11px 15px;border-radius:8px;cursor:pointer;text-decoration:none;font-weight:700;display:inline-block}button.secondary,.button.secondary{background:#e8edf5;color:#273a54}.controls{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px}.note{background:#fff4dd;border-radius:8px;padding:11px;margin:12px 0;color:#795b22}.green{background:#e2f5ed;color:#206a50;padding:11px;border-radius:8px}.scroll{overflow:auto}table{border-collapse:collapse;width:100%}th,td{border-bottom:1px solid #edf0f4;padding:9px;white-space:nowrap;text-align:left}td input{min-width:95px}th{color:#66798c;font-size:12px}img{max-width:100%;max-height:580px;object-fit:contain}#preview{min-height:80px;background:#f4f6fa;padding:12px;border:1px dashed #a9b6c7;border-radius:9px}.muted{color:#738396;font-size:12px}h2{margin-top:0}@media(max-width:800px){.grid{grid-template-columns:1fr}.fields{grid-template-columns:1fr 1fr}}</style></head><body><header><h1>Controle · Captura do apontamento diário</h1><div>Da ficha de corte e solda ao Dashboard de Produção</div></header><main><a class="button secondary" href="./">← Dashboard de produção</a><div class="note">Regras da produção: almoço às 12h, encerramento normal às 21h; horário posterior registrado prevalece. Se o fim estiver vazio, registrar observação e seguir para a próxima bobina. O OCR local é experimental, sem senha ou API; nenhuma informação ilegível será inventada.</div>
-<div class="panel"><h2>Enviar foto da ficha de produção</h2><p class="muted">Selecione a fotografia: a leitura começa automaticamente e o sistema gera um dashboard antes de qualquer gravação. Campos ilegíveis serão sinalizados sem inventar números.</p><input id="photo" type="file" accept="image/png,image/jpeg,image/webp" capture="environment"><div class="controls"><button id="analyze" onclick="analyzePhoto()" type="button">Analisar fotografia e gerar dashboard</button><button class="secondary" onclick="discard()">Descartar análise</button></div><div id="aiStatus" class="muted" role="status" aria-live="polite"></div><div id="preview"></div></div>
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SANPA • Captura de produção</title><script src="./regras-turno.js"></script><style>
+*{box-sizing:border-box}body{margin:0;background:#f1f4f8;color:#203149;font:14px system-ui}header{background:#17365d;color:white;padding:23px 5%}header h1{margin:0;font-size:25px}main{max-width:1350px;margin:22px auto;padding:0 18px}.panel{background:white;border:1px solid #dce5ef;border-radius:12px;padding:20px;margin:15px 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.fields{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}label{display:block;font-size:12px;font-weight:700;color:#687a8d;margin:7px 0}input,select,textarea{padding:10px;width:100%;border:1px solid #d4dfe9;border-radius:7px;font:inherit}button,.button{background:#136c81;color:white;border:0;padding:11px 15px;border-radius:8px;cursor:pointer;text-decoration:none;font-weight:700;display:inline-block}button.secondary,.button.secondary{background:#e8edf5;color:#273a54}.controls{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px}.note{background:#fff4dd;border-radius:8px;padding:11px;margin:12px 0;color:#795b22}.green{background:#e2f5ed;color:#206a50;padding:11px;border-radius:8px}.scroll{overflow:auto}table{border-collapse:collapse;width:100%}th,td{border-bottom:1px solid #edf0f4;padding:9px;white-space:nowrap;text-align:left}td input{min-width:95px}th{color:#66798c;font-size:12px}img{max-width:100%;max-height:580px;object-fit:contain}#preview{min-height:80px;background:#f4f6fa;padding:12px;border:1px dashed #a9b6c7;border-radius:9px}.muted{color:#738396;font-size:12px}h2{margin-top:0}@media(max-width:800px){.grid{grid-template-columns:1fr}.fields{grid-template-columns:1fr 1fr}}.controls input[type="password"]{flex:1}.panel{min-width:0}canvas{width:100%;max-width:100%;height:auto}#results .fields{grid-template-columns:repeat(3,minmax(0,1fr))}.note p{margin-bottom:0}@media(max-width:850px){#results .fields{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:560px){#results .fields{grid-template-columns:1fr 1fr}button{width:100%}.controls{flex-direction:column}header{padding:18px}.panel{padding:14px}h2{font-size:19px}}</style></head><body><header><h1>Controle · Captura do apontamento diário</h1><div>Da ficha de corte e solda ao Dashboard de Produção</div></header><main><a class="button secondary" href="./">← Dashboard de produção</a><div class="note">Regras da produção: almoço às 12h, encerramento normal às 21h; horário posterior registrado prevalece. Se o fim estiver vazio, registrar observação e seguir para a próxima bobina. A fotografia agora é interpretada pela IA de visão da OpenAI. A prévia não grava nenhum dado; o salvamento depende da sua aprovação. Nunca são inventados horários ou quantidades.</div>
+<div class="panel"><h2>Enviar foto da ficha de produção</h2><p class="muted">Selecione uma foto nítida, mostrando a ficha inteira. A IA lê os blocos manuscritos e gera a prévia automaticamente. Não é necessário transcrever campos da produção.</p><input id="photo" type="file" accept="image/png,image/jpeg,image/webp" capture="environment"><div id="accessPanel" class="note" style="display:none">
+<label for="capturePin">Código de acesso ao leitor de IA (uma vez por aba)</label>
+<div class="controls"><input style="max-width:240px" id="capturePin" type="password" autocomplete="off" placeholder="Código de acesso" aria-label="Código de acesso à IA"><button onclick="activateAccess()" type="button">Ativar leitura</button></div>
+<p class="muted">Esse código é definido pela administração na Vercel e usado apenas para proteger os créditos de IA. Depois da ativação, basta fotografar as fichas.</p>
+</div><div class="controls"><button id="analyze" onclick="analyzePhoto()" type="button">Ler novamente com IA</button><button class="secondary" onclick="discard()">Descartar análise</button></div><div id="aiStatus" class="muted" role="status" aria-live="polite"></div><div id="preview"></div></div>
 <div id="results" style="display:none">
-<div class="panel"><h2>Prévia do dashboard — ainda não salvo</h2><div class="fields" id="summary"></div><p id="warnings" class="note"></p><div class="grid"><div><h3>Unidades por bobina</h3><canvas id="qtyChart" width="480" height="260"></canvas></div><div><h3>Produtividade por bobina (un./h)</h3><canvas id="speedChart" width="480" height="260"></canvas></div></div><div class="scroll"><table><thead><tr><th>Data</th><th>Operador</th><th>Bobina</th><th>Produto / tamanho</th><th>Início</th><th>Fim</th><th>Quantidade</th><th>Parada</th><th>Un./h</th><th>Leitura</th><th>Observações / turno</th></tr></thead><tbody id="resultsBody"></tbody></table></div><div class="controls"><button onclick="commit()">Aprovar dashboard e salvar produção</button><button class="secondary" onclick="discard()">Descartar sem salvar</button></div><div id="message"></div></div></div></main>
+<div class="panel"><h2>Prévia do dashboard — ainda não salvo</h2><div class="fields" id="summary"></div><p id="warnings" class="note"></p><div class="grid"><div><h3>Unidades por bobina</h3><canvas id="qtyChart" width="480" height="260"></canvas></div><div><h3>Produtividade por bobina (un./h)</h3><canvas id="speedChart" width="480" height="260"></canvas></div></div><div class="scroll"><table><thead><tr><th>Data</th><th>Operador</th><th>Bobina</th><th>Produto / tamanho</th><th>Início</th><th>Fim</th><th>Quantidade</th><th>Parada</th><th>Un./h</th><th>Leitura</th><th>Observações / turno</th></tr></thead><tbody id="resultsBody"></tbody></table></div><div class="controls"><button id="saveButton" onclick="commit()">Aprovar dashboard e salvar produção</button><button class="secondary" onclick="downloadPreview()">Baixar prévia JSON</button><button class="secondary" onclick="discard()">Descartar sem salvar</button></div><div id="message"></div></div></div></main>
 <script>
-const KEY="sanpa-prod-2026";let previewRows=[],report=null;
-const $=id=>document.getElementById(id),esc=t=>String(t??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-function minutes(t){return SanpaShift.minute(t)}
-function fmt(n){return Number.isFinite(n)?Math.round(n).toLocaleString("pt-BR"):"—"}
-function parseTime(txt){let m=/(?:^|\\D)([01]?\\d|2[0-3])[h:.]([0-5]\\d)(?!\\d)/i.exec(txt||"");return m?m[1].padStart(2,"0")+":"+m[2]:""}
-function parsePhotoText(text){
- const dateMatch=text.match(/(?:DATA|DIA)\s*[:.]?\s*(\d{1,2})\s*[\/.\-]\s*(\d{1,2})\s*[\/.\-]\s*(\d{2,4})/i);
- const date=dateMatch?((dateMatch[3].length===2?"20"+dateMatch[3]:dateMatch[3])+"-"+dateMatch[2].padStart(2,"0")+"-"+dateMatch[1].padStart(2,"0")):"";
- const rawOperator=(text.match(/OPERADOR\s*[:.]?\s*([A-Za-zÀ-ÿ]{3,25})/i)||[])[1]||"";
- const operator=/^lucas$/i.test(rawOperator)?"Lucas":/^gustavo$/i.test(rawOperator)?"Gustavo":rawOperator;
- const size=((text.match(/\b(16|20|25|30|40)\s*[x×X]\s*(20|30|35|40|50)\b/)||[])[0]||"").replace(/\s*[xX×]\s*/g,"×");
- const warnings=[],rows=[];
- // The preprinted form always has six sections. OCR reading order is not
- // necessarily row-based, so segment by BOBINA headers when available.
- const markers=[...text.matchAll(/\bBOB[I1l]NA\s*([1-6])\b/gi)];
- const indices=new Set();
- for(let i=0;i<markers.length;i++){
-  const n=Number(markers[i][1]);
-  if(indices.has(n))continue;
-  indices.add(n);
-  const start=markers[i].index+markers[i][0].length;
-  const end=i+1<markers.length?markers[i+1].index:text.length;
-  const body=text.slice(start,end);
-  const extractClock=label=>{
-   const pos=body.search(label);
-   if(pos<0)return "";
-   const fragment=body.slice(pos,pos+120).split(/\n/).slice(0,3).join(" ");
-   const stop=fragment.search(/(?:fim\s*(?:do\s*)?cort[eoi]|qtd\.?\s*produzid[ao]|quantidade|refugo|parada\s*inicio)/i);
-   const safe=stop>5?fragment.slice(0,stop):fragment;
-   const m=safe.match(/\b([01]?\d|2[0-3])\s*[:h.]\s*([0-5]\d)\b/);
-   return m?m[1].padStart(2,"0")+":"+m[2]:"";
-  };
-  const started=extractClock(/in[ií]cio\s*(?:do\s*)?cort[eoi]/i);
-  const ended=extractClock(/fim\s*(?:do\s*)?cort[eoi]/i);
-  const stamps=[started,ended];
-  const qm=body.match(/(?:QTD\.?\s*produzida|quantidade\s*produzida)\s*[:.]?\s*([\d.]{3,9})/i);
-  const qty=qm?Number(qm[1].replace(/\./g,"")):null;
-  const productMatch=body.match(/(?:material\s*\/?\s*medida)\s*[:.]?\s*([^\n]{2,95})/i);
-  rows.push({date,operator,bobbin:n,size,product:productMatch?(productMatch[1].trim()):"",start:stamps[0]||"",end:stamps[1]||"",qty:Number.isFinite(qty)?qty:null,stops:null,uncertain:true,notes:ended?"Extração por OCR: conferir leitura manuscrita":"Horário de finalização não informado na ficha ou ilegível; próxima bobina analisada"});
+"use strict";
+const KEY='sanpa-prod-2026',PIN_KEY='sanpa-pin-session';
+let previewRows=[],report=null,analyzing=false,alreadySaved=false;
+const $=id=>document.getElementById(id);
+const esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=n=>n!==null&&Number.isFinite(n)?Math.round(n).toLocaleString('pt-BR'):'—';
+const minutes=t=>SanpaShift.minute(t);
+function activateAccess(){
+ const v=$('capturePin').value.trim();
+ if(!v)return alert('Informe o código de acesso definido no projeto Vercel.');
+ sessionStorage.setItem(PIN_KEY,v);
+ $('capturePin').value='';
+ $('accessPanel').style.display='none';
+ if($('photo').files.length)analyzePhoto();
+}
+function showStatus(text,kind='info'){
+ $('aiStatus').textContent=text;
+ $('aiStatus').style.color=kind==='error'?'#a02e3b':kind==='ok'?'#157a51':'#687a8d';
+}
+async function makePayload(file){
+ const img=await new Promise((ok,fail)=>{
+  const url=URL.createObjectURL(file),image=new Image();
+  image.onload=()=>{URL.revokeObjectURL(url);ok(image)};
+  image.onerror=()=>{URL.revokeObjectURL(url);fail(Error('Formato de imagem não reconhecido pelo navegador.'))};
+  image.src=url;
+ });
+ const sw=img.naturalWidth,sh=img.naturalHeight;
+ if(!sw||!sh)throw Error('Imagem vazia.');
+ function jpeg(sx,sy,cw,ch,maxdim,quality=.80){
+   const factor=Math.min(1,maxdim/Math.max(cw,ch)),canvas=document.createElement('canvas');
+   canvas.width=Math.max(1,Math.round(cw*factor));
+   canvas.height=Math.max(1,Math.round(ch*factor));
+   const ctx=canvas.getContext('2d',{alpha:false});
+   ctx.fillStyle='white';ctx.fillRect(0,0,canvas.width,canvas.height);
+   ctx.drawImage(img,sx,sy,cw,ch,0,0,canvas.width,canvas.height);
+   return canvas.toDataURL('image/jpeg',quality);
  }
- rows.sort((a,b)=>a.bobbin-b.bobbin);
- if(!rows.length){
-   // Identify the form layout, without falsely claiming that six bobbins were used.
-   warnings.push("OCR não identificou os cabeçalhos de cada bobina; mostrando os seis campos do formulário como candidatos, sem assumir produção.");
-   for(let n=1;n<=6;n++)rows.push({date,operator,bobbin:n,size,product:"",start:"",end:"",qty:null,stops:null,uncertain:true,notes:"Campo da ficha — não reconhecido pelo OCR"});
- }
- if(!date)warnings.push("Data manuscrita não reconhecida");
- if(!operator)warnings.push("Operador manuscrito não reconhecido");
- if(!size)warnings.push("Medida manuscrita não reconhecida");
- if(rows.some(r=>r.qty===null))warnings.push("Quantidade não reconhecida em uma ou mais bobinas; não foi estimada");
- return {date,operator,size,rows,warnings};
+ const full=jpeg(0,0,sw,sh,2000,.79);
+ const half=Math.round(sh/2);
+ const crops=[jpeg(0,0,sw,Math.min(sh,half+sh*.04),1950,.81),
+              jpeg(0,Math.max(0,half-sh*.04),sw,sh-Math.max(0,half-sh*.04),1950,.81)];
+ let body={image:full,crops};
+ let txt=JSON.stringify(body);
+ // Stay under the serverless request cap; preserve the entire original image.
+ while(txt.length>3950000&&crops.length){crops.pop();txt=JSON.stringify(body)}
+ if(txt.length>3950000)body={image:jpeg(0,0,sw,sh,1650,.72),crops:[]};
+ return body;
+}
+function discard(silent=false){
+ previewRows=[];report=null;alreadySaved=false;
+ $('results').style.display='none';
+ $('message').textContent='';
+ if(!silent)showStatus('Análise descartada. Nada foi salvo.');
 }
 async function analyzePhoto(){
- const f=$("photo").files[0];if(!f)return alert("Selecione a fotografia");
- if(!window.Tesseract)return $("aiStatus").textContent="Biblioteca de reconhecimento indisponível. Atualize a página com internet.";
- $("analyze").disabled=true;$("results").style.display="none";$("aiStatus").textContent="Interpretando foto localmente…";
+ const f=$('photo').files[0];
+ if(!f)return alert('Selecione a fotografia da ficha.');
+ if(analyzing)return;
+ const pin=sessionStorage.getItem(PIN_KEY);
+ if(!pin){$('accessPanel').style.display='block';showStatus('Insira o código de acesso uma única vez nesta aba para iniciar a leitura por IA.');return;}
+ analyzing=true;alreadySaved=false;$('analyze').disabled=true;discard(true);
+ showStatus('Preparando imagem completa e recortes para leitura manuscrita…');
  try{
-  const worker=await Tesseract.createWorker("por",1,{logger:m=>{if(m.status)$("aiStatus").textContent=m.status+" "+Math.round((m.progress||0)*100)+"%";}});
-  let res;try{await worker.setParameters({tessedit_pageseg_mode:"11"});res=await worker.recognize(f)}finally{await worker.terminate()}
-  report=parsePhotoText(res.data.text||"");
-  report.warnings.unshift("Leitura experimental: os blocos podem ser apenas campos vazios da ficha, não bobinas efetivamente utilizadas. Confirme visualmente antes de considerar resultados.");
-  previewRows=report.rows;$("aiStatus").textContent="Análise concluída. Confira o resultado antes de aprovar.";
+  const payload=await makePayload(f);
+  showStatus('Enviando a fotografia à IA e interpretando os blocos da ficha…');
+  const response=await fetch('/api/extract',{
+   method:'POST',headers:{'Content-Type':'application/json','x-capture-pin':pin},
+   body:JSON.stringify(payload),cache:'no-store'
+  });
+  let data;try{data=await response.json()}catch{throw Error('O servidor retornou uma resposta inválida ('+response.status+').')}
+  if(!response.ok){
+   if(response.status===401){sessionStorage.removeItem(PIN_KEY);$('accessPanel').style.display='block'}
+   throw Error(data.error||'Erro '+response.status+' na leitura da fotografia');
+  }
+  if(!Array.isArray(data.rows))throw Error('A IA não forneceu a lista de bobinas.');
+  report=data;
+  previewRows=data.rows.map(r=>({
+   date:data.date||'',operator:data.operator||'',size:r.size||data.size||'',
+   bobbin:Number.isInteger(r.bobbin)?r.bobbin:null,
+   product:typeof r.product==='string'?r.product:'',
+   start:typeof r.start==='string'?r.start:'',
+   end:typeof r.end==='string'?r.end:'',
+   qty:Number.isSafeInteger(r.qty)&&r.qty>=0?r.qty:null,
+   stops:typeof r.stops==='number'&&Number.isFinite(r.stops)?r.stops:null,
+   notes:r.notes||'',uncertain:Boolean(r.uncertain)
+  }));
   render();
- }catch(e){$("aiStatus").textContent="Não foi possível processar a foto: "+e.message}finally{$("analyze").disabled=false}
+  showStatus('Análise por IA concluída. Confira o dashboard e decida se deseja salvar.', 'ok');
+ }catch(e){
+  showStatus('Não foi possível concluir a análise: '+e.message,'error');
+ }finally{analyzing=false;$('analyze').disabled=false}
 }
 function render(){
- $("results").style.display="block";
+ $('results').style.display='block';
  const active=previewRows.filter(r=>SanpaShift.inspect(r).active);
- const qtyRows=active.filter(r=>r.qty!==null&&Number.isFinite(+r.qty));
- const total=qtyRows.reduce((n,r)=>n+(+r.qty),0);
- const rateRows=active.filter(r=>r.qty!==null&&SanpaShift.inspect(r).minutes!==null);
- const rateMinutes=rateRows.reduce((n,r)=>n+SanpaShift.inspect(r).minutes,0);
- const rateQty=rateRows.reduce((n,r)=>n+(+r.qty),0);
- const unfinished=active.filter(r=>SanpaShift.inspect(r).flags.includes("fim-ausente")).length;
- const late=active.filter(r=>SanpaShift.inspect(r).afterHours).length;
- const uncertain=active.filter(r=>r.qty===null||!r.date||!r.operator||!r.product||!r.size||!r.start);
- const metrics=[["Bobinas com apontamentos",fmt(active.length)],["Unidades identificadas",qtyRows.length?fmt(total):"Não identificadas"],["Produtividade válida",rateMinutes?fmt(rateQty*60/rateMinutes)+" un./h":"Sem base suficiente"],["Finalizações ausentes",fmt(unfinished)],["Após 21h anotado",fmt(late)],["Campos importantes ausentes",fmt(uncertain.length)]];
- $("summary").innerHTML=metrics.map(m=>'<div class="panel" style="margin:0"><label>'+esc(m[0])+'</label><b style="font-size:20px">'+esc(m[1])+'</b></div>').join("");
- const warnings=[...(report?.warnings||[])];
- if(!active.length)warnings.push("Nenhuma bobina com dados comprovados na foto. Os blocos exibidos são apenas campos da ficha, não produção.");
- if(unfinished)warnings.push(unfinished+" bobina(s) sem fim: não foi presumido 12h nem 21h.");
- if(active.some(r=>SanpaShift.inspect(r).lunchCrossing))warnings.push("Bobina atravessando 12h: produtividade excluída até que a pausa esteja documentada.");
- if(uncertain.length)warnings.push("Dados ilegíveis ou ausentes são mostrados sem preenchimento fictício.");
- $("warnings").textContent=warnings.join(" • ");
- $("resultsBody").innerHTML=previewRows.map(r=>{
-   const rule=SanpaShift.inspect(r),m=rule.minutes,rate=r.qty!==null&&m!==null?+r.qty*60/m:null;
-   const notes=[r.notes,...rule.notes].filter(Boolean).join(" | ");
-   return "<tr>"+[r.date||"Não lida",r.operator||"Não lido",r.bobbin,r.product+" / "+(r.size||"—"),r.start||"—",r.end||"Não informado",r.qty===null?"Não lida":fmt(+r.qty),r.stops===null?"Não lida":r.stops,fmt(rate),rule.active?(r.uncertain?"Incerta":"OCR"):"Campo sem produção confirmada",notes].map(x=>"<td>"+esc(x)+"</td>").join("")+"</tr>";
- }).join("");
- bar("qtyChart",active.map(r=>r.qty===null?null:+r.qty),"#0e8992",active);
- bar("speedChart",active.map(r=>{let m=SanpaShift.inspect(r).minutes;return r.qty!==null&&m!==null?+r.qty*60/m:null}),"#5265b3",active);
+ const qtyRows=active.filter(r=>r.qty!==null);
+ const total=qtyRows.reduce((s,r)=>s+r.qty,0);
+ const validRate=active.filter(r=>r.qty!==null&&SanpaShift.inspect(r).minutes!==null);
+ const duration=validRate.reduce((s,r)=>s+SanpaShift.inspect(r).minutes,0);
+ const validUnits=validRate.reduce((s,r)=>s+r.qty,0);
+ const withoutEnd=active.filter(r=>SanpaShift.inspect(r).flags.includes('fim-ausente')).length;
+ const afterHours=active.filter(r=>SanpaShift.inspect(r).afterHours).length;
+ const missing=active.filter(r=>!r.date||!r.operator||r.qty===null||!r.size||!r.product||!r.start).length;
+ const metrics=[
+ ['Bobinas identificadas',fmt(active.length)],
+ ['Unidades reconhecidas',qtyRows.length?fmt(total):'Não lidas'],
+ ['Produtividade calculável',duration?fmt(validUnits*60/duration)+' un./h':'Sem base'],
+ ['Sem horário de fim',fmt(withoutEnd)],
+ ['Términos após 21h',fmt(afterHours)],
+ ['Registros com lacunas',fmt(missing)]
+ ];
+ $('summary').innerHTML=metrics.map(m=>'<div class="panel" style="margin:0"><label>'+esc(m[0])+'</label><b style="font-size:21px">'+esc(m[1])+'</b></div>').join('');
+ let warn=[...(report?.warnings||[])];
+ if(withoutEnd)warn.push('Finalizações em branco são observações, não geram horário fictício.');
+ if(active.some(r=>SanpaShift.inspect(r).lunchCrossing))warn.push('Períodos que atravessam 12h sem pausa identificada ficam fora da produtividade.');
+ if(missing)warn.push('Há campos não reconhecidos: somente a informação efetivamente lida entrará no histórico se você aprovar.');
+ if(!active.length)warn.push('A foto não contém bobinas comprovadamente legíveis.');
+ $('warnings').style.display=warn.length?'block':'none';
+ $('warnings').textContent=warn.join(' • ');
+ $('resultsBody').innerHTML=previewRows.map(r=>{
+  const rule=SanpaShift.inspect(r),duration=rule.minutes;
+  const rate=r.qty!==null&&duration!==null&&duration>0?r.qty*60/duration:null;
+  const rowValues=[
+    r.date||'Não lida',r.operator||'Não lido',r.bobbin??'—',
+    [r.product,r.size].filter(Boolean).join(' / ')||'Não lido',
+    r.start||'Não lido',r.end||'Não informado',
+    r.qty===null?'Não lida':fmt(r.qty),
+    r.stops===null?'Sem anotação':r.stops+' min',
+    fmt(rate),r.uncertain?'Revisar':'Leitura IA',
+    [r.notes,...rule.notes].filter(Boolean).join(' | ')
+  ];
+  return '<tr>'+rowValues.map(v=>'<td>'+esc(v)+'</td>').join('')+'</tr>';
+ }).join('');
+ bar('qtyChart',active.map(r=>r.qty),'#0c8792',active);
+ bar('speedChart',active.map(r=>{const d=SanpaShift.inspect(r).minutes;return r.qty!==null&&d!==null&&d>0?r.qty*60/d:null}),'#5068bd',active);
+ $('saveButton').disabled=alreadySaved||!active.length;
 }
 function bar(id,values,color,rows){
- const c=$(id),ctx=c.getContext("2d"),w=c.width,h=c.height;
- ctx.clearRect(0,0,w,h);ctx.fillStyle="#64748b";ctx.font="14px sans-serif";
- if(!values.some(v=>v!==null&&Number.isFinite(v)&&v>0)){ctx.fillText("Sem valores confiáveis para representar",14,45);return}
+ const canvas=$(id),ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height;
+ ctx.clearRect(0,0,w,h);ctx.fillStyle='#64748b';ctx.font='14px sans-serif';
+ if(!values.some(v=>v!==null&&Number.isFinite(v)&&v>0)){ctx.fillText('Sem dados confiáveis para este gráfico',14,44);return;}
  const max=Math.max(...values.filter(v=>v!==null&&Number.isFinite(v)),1),bw=(w-45)/Math.max(values.length,1);
- values.forEach((v,i)=>{if(v!==null&&Number.isFinite(v)){ctx.fillStyle=color;let bh=Math.max(0,(h-55)*(v/max));ctx.fillRect(20+i*bw,h-32-bh,Math.max(6,bw*.65),bh)}
- ctx.fillStyle="#314358";ctx.font="12px sans-serif";ctx.fillText("B"+rows[i].bobbin,20+i*bw,h-12)});
+ values.forEach((v,i)=>{
+  if(v!==null&&Number.isFinite(v)&&v>=0){const bh=(h-55)*(v/max);ctx.fillStyle=color;ctx.fillRect(20+i*bw,h-32-bh,Math.max(5,bw*.65),bh)}
+  ctx.fillStyle='#314358';ctx.font='12px sans-serif';ctx.fillText('B'+rows[i].bobbin,20+i*bw,h-12);
+ });
 }
-function discard(){previewRows=[];report=null;$("results").style.display="none";$("aiStatus").textContent="Análise descartada. Nenhum dado foi salvo."}
 function commit(){
- const usable=previewRows.filter(r=>SanpaShift.inspect(r).active);
- if(!usable.length)return alert("Não há produção reconhecida. Nada será gravado.");
- // A missing end is an observation, not a reason to reject the next bobbin.
- if(usable.some(r=>r.qty===null||!r.date||!r.operator||!r.product||!r.size||!r.start||!Number.isInteger(r.bobbin)))
-   return alert("Não é possível gravar os apontamentos porque faltam dados essenciais da foto. Nenhum valor será inventado. A prévia continua disponível.");
- if(usable.some(r=>SanpaShift.inspect(r).flags.includes("horario-invalido")))
-   return alert("Foi detectado término anterior ao início; nenhum registro foi salvo.");
- let old=[];try{old=JSON.parse(localStorage.getItem(KEY)||"[]")}catch{return alert("Histórico local inválido")}
- if(!Array.isArray(old))return alert("Histórico local inválido");
- const ids=new Set(old.map(r=>[r.date,r.operator.toLowerCase(),r.bobbin].join("|")));
- for(let r of usable){let k=[r.date,r.operator.toLowerCase(),r.bobbin].join("|");if(ids.has(k))return alert("Bobina duplicada: "+k);ids.add(k)}
- if(!confirm("Aprovar os "+usable.length+" registros para o histórico? Fins ausentes serão gravados apenas como observação."))return;
- const rows=usable.map(r=>({...r,notes:[r.notes,...SanpaShift.inspect(r).notes].filter(Boolean).join(" | ")}));
- try{localStorage.setItem(KEY,JSON.stringify([...old,...rows]));$("message").innerHTML='<div class="green">Produção aprovada e salva. Horários ausentes foram registrados como observações, sem estimativas.</div>'}catch(e){alert("Falha ao salvar: "+e.message)}
+ if(alreadySaved)return;
+ const rows=previewRows.filter(r=>SanpaShift.inspect(r).active);
+ if(!rows.length)return alert('Nenhuma bobina reconhecida para salvar.');
+ if(rows.some(r=>!r.date||!r.operator||!Number.isInteger(r.bobbin))){
+  return alert('A IA não conseguiu identificar a data, o operador ou o número de alguma bobina. O dashboard está disponível, mas o lançamento precisa dessas referências.');
+ }
+ if(rows.some(r=>SanpaShift.inspect(r).flags.includes('horario-invalido')))
+  return alert('Um horário de fim é anterior ao início. Nenhum dado foi salvo.');
+ let old;try{old=JSON.parse(localStorage.getItem(KEY)||'[]')}catch{return alert('O histórico deste navegador está inválido.')}
+ if(!Array.isArray(old))return alert('O histórico deste navegador está inválido.');
+ const keys=new Set(old.map(r=>[r.date,String(r.operator).trim().toLowerCase(),r.bobbin].join('|')));
+ for(let r of rows){
+  const k=[r.date,String(r.operator).trim().toLowerCase(),r.bobbin].join('|');
+  if(keys.has(k))return alert('Registro já existente: '+r.date+' / '+r.operator+' / bobina '+r.bobbin+'. Nada foi duplicado.');
+  keys.add(k);
+ }
+ const incomplete=rows.filter(r=>r.qty===null||!r.product||!r.size||!r.start||!r.end).length;
+ const msg='Aprovar '+rows.length+' bobina(s) identificadas pela IA?'+(incomplete?'\n'+incomplete+' registro(s) têm campos incompletos, que continuarão vazios.':'')+'\nOs dados serão salvos somente neste navegador.';
+ if(!confirm(msg))return;
+ const newRows=rows.map(r=>({...r,notes:[r.notes,...SanpaShift.inspect(r).notes].filter(Boolean).join(' | ')}));
+ try{
+  localStorage.setItem(KEY,JSON.stringify([...old,...newRows]));
+  alreadySaved=true;$('saveButton').disabled=true;
+  $('message').innerHTML='<div class="green">Análise aprovada: '+rows.length+' bobina(s) salva(s) no histórico deste navegador. <a href="./">Abrir dashboard</a></div>';
+ }catch(e){alert('Falha ao salvar: '+e.message)}
 }
-$("photo").onchange=e=>{const f=e.target.files[0];if(!f)return;let url=URL.createObjectURL(f),img=document.createElement("img");img.src=url;img.alt="Foto selecionada";img.onload=()=>URL.revokeObjectURL(url);$("preview").replaceChildren(img);discard();analyzePhoto()};
+function downloadPreview(){
+ if(!report)return;
+ const content=JSON.stringify({saved:alreadySaved,reviewed:false,report,rows:previewRows},null,2);
+ const blob=new Blob([content],{type:'application/json'}),url=URL.createObjectURL(blob);
+ const a=document.createElement('a');a.href=url;a.download='sanpa-previa-ia-'+(report.date||'sem-data')+'.json';a.click();
+ setTimeout(()=>URL.revokeObjectURL(url),1200);
+}
+$('photo').addEventListener('change',()=>{
+ const f=$('photo').files[0];if(!f)return;
+ const url=URL.createObjectURL(f),img=new Image();img.alt='Foto da ficha selecionada';
+ img.onload=()=>URL.revokeObjectURL(url);img.src=url;
+ $('preview').replaceChildren(img);
+ discard(true);
+ analyzePhoto();
+});
 </script></body></html>
